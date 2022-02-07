@@ -15,9 +15,9 @@ We will build the hardware device using raspberry pi zero w, and implement softw
 
 ## Contact
 Member #1: 
-Yingzhuo Yang
+Yingzhuo Yang.
 Email: yy3826@nyu.edu
 
 Member #2: 
-Zijie Wu
+Zijie Wu.
 Email: zw1711@nyu.edu
