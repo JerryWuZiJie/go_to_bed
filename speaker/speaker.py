@@ -5,6 +5,7 @@ This file contains the functionalities of the speaker
 """
 
 import pygame as pg
+import keyboard
 
 
 class Speaker:
@@ -17,9 +18,6 @@ class Speaker:
         channels: 1 is mono, 2 is stereo
         buffer: number of samples (experiment to get right sound)
         """
-        # initialize pygame (for catching event)
-        # TODO: event doesn't work with GUI
-        pg.init()
 
         # initialize mixer (for playing sound)
         self.mixer = pg.mixer
@@ -27,6 +25,14 @@ class Speaker:
 
         # set volume to 20%
         self.mixer.music.set_volume(0.2)
+
+        # binding keys
+        # up arrow to increase volume
+        keyboard.add_hotkey('up arrow', self.increase_volume())
+        # down arrow to decrease volume
+        keyboard.add_hotkey('down arrow', self.decrease_volume())
+        # q to stop playing
+        keyboard.add_hotkey('q', self.stop_sound())
 
     def set_sound(self, sound):
         """
@@ -42,11 +48,12 @@ class Speaker:
         stream music with mixer.music module in non-blocking manner
         this will stream the sound from disk while playing
         """
-        
+
         try:
             self.mixer.music.load(self.sound)
         except pg.error:
-            print("File {} not found! {}".format(self.sound, pg.get_error()))  # TODO: maybe change to blink of led
+            # TODO: maybe change to blink of led
+            print("File {} not found! {}".format(self.sound, pg.get_error()))
             return
 
         self.mixer.music.play()
@@ -70,7 +77,7 @@ class Speaker:
         """
 
         return self.mixer.music.get_busy()
-    
+
     def volume(self):
         """
         get the volume of the speaker
@@ -82,7 +89,7 @@ class Speaker:
         """
         increase 10% of the total volume
         """
-        
+
         # the set_volume function will auto truncate the input
         self.mixer.music.set_volume(self.volume() + 0.1)
 
@@ -93,36 +100,8 @@ class Speaker:
 
         self.mixer.music.set_volume(self.volume() - 0.1)
 
-
-    def get_keypress(self):
-        """
-        detect keypress for adjusting volume
-        
-        return False if q press, which indicates end of program
-        """
-        
-        for event in pg.event.get():
-            # checking if keydown event happened or not
-            if event.type == pg.KEYDOWN:
-                # checking if key "A" was pressed
-                if event.key == pg.K_UP:
-                    self.increase_volume()
-                    print("Increase volume:", self.volume())
-                
-                # checking if key "J" was pressed
-                if event.key == pg.K_DOWN:
-                    self.decrease_volume()
-                    print("Decrease volume:", self.volume())
-                
-                # checking if key "P" was pressed
-                if event.key == pg.K_q:
-                    return False
-        
-        return True
-
     def __del__(self):
         pg.quit()
-
 
     # TODO: trigger event when music stop?
     # pygame.mixer.music.set_endevent
@@ -130,4 +109,3 @@ class Speaker:
     maybe use pause to indicate the user stop and unload it, and stop to indicate
     oversleep with callback handling that. Test needed
     '''
-
