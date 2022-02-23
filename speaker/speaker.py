@@ -100,6 +100,20 @@ class Speaker:
 
         self.mixer.music.set_volume(self.volume() - 0.1)
 
+    def pause(self):
+        """
+        pause the sound
+        """
+
+        self.mixer.music.pause()
+
+    def resume(self):
+        """
+        resume the sound
+        """
+
+        self.mixer.music.unpause()
+
     def __del__(self):
         pg.quit()
 
