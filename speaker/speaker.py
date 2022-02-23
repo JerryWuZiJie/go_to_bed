@@ -5,7 +5,6 @@ This file contains the functionalities of the speaker
 """
 
 import pygame as pg
-import time
 
 
 class Speaker:
@@ -18,8 +17,16 @@ class Speaker:
         channels: 1 is mono, 2 is stereo
         buffer: number of samples (experiment to get right sound)
         """
+        # initialize pygame (for catching event)
+        # TODO: event doesn't work with GUI
+        pg.init()
+
+        # initialize mixer (for playing sound)
         self.mixer = pg.mixer
         self.mixer.init(freq, bitsize, channels, buffer)
+
+        # set volume to 20%
+        self.mixer.music.set_volume(0.2)
 
     def set_sound(self, sound):
         """
@@ -69,7 +76,7 @@ class Speaker:
         get the volume of the speaker
         """
 
-        return self.mixer.music.get_volume()
+        return round(self.mixer.music.get_volume(), 1)
 
     def increase_volume(self):
         """
@@ -86,6 +93,37 @@ class Speaker:
 
         self.mixer.music.set_volume(self.volume() - 0.1)
 
+
+    def get_keypress(self):
+        """
+        detect keypress for adjusting volume
+        
+        return False if q press, which indicates end of program
+        """
+        
+        for event in pg.event.get():
+            # checking if keydown event happened or not
+            if event.type == pg.KEYDOWN:
+                # checking if key "A" was pressed
+                if event.key == pg.K_UP:
+                    self.increase_volume()
+                    print("Increase volume:", self.volume())
+                
+                # checking if key "J" was pressed
+                if event.key == pg.K_DOWN:
+                    self.decrease_volume()
+                    print("Decrease volume:", self.volume())
+                
+                # checking if key "P" was pressed
+                if event.key == pg.K_q:
+                    return False
+        
+        return True
+
+    def __del__(self):
+        pg.quit()
+
+
     # TODO: trigger event when music stop?
     # pygame.mixer.music.set_endevent
     '''
@@ -93,15 +131,3 @@ class Speaker:
     oversleep with callback handling that. Test needed
     '''
 
-speaker = Speaker()
-speaker.set_sound("sound/Let Her Go.mp3")
-speaker.play_sound()
-
-speaker.decrease_volume()
-print(speaker.volume())
-if speaker.is_playing():
-    time.sleep(5)
-
-speaker.mixer.music.fadeout(1000)
-
-print("exit")
