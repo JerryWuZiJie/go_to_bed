@@ -21,3 +21,14 @@ Email: yy3826@nyu.edu
 Member #2: 
 Zijie Wu.
 Email: zw1711@nyu.edu
+
+## File Structure
+- ### docs
+    Documents such as datasheet \
+    Also contains pictures used in markdown files
+- ### sound
+    Sound file used by speaker module
+- ### utils.py
+    Contains all low level functions and classes that can be used directly
+- ### demo.py
+    A demo on how to use the functions and classes in utils.py
