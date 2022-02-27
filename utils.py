@@ -5,7 +5,6 @@ This file contains the functionalities of the speaker
 """
 
 import pygame as pg
-import keyboard
 
 
 class Speaker:
@@ -26,13 +25,6 @@ class Speaker:
         # set volume to 20%
         self.mixer.music.set_volume(0.2)
 
-        # binding keys
-        # up arrow to increase volume
-        keyboard.add_hotkey('up arrow', self.increase_volume())
-        # down arrow to decrease volume
-        keyboard.add_hotkey('down arrow', self.decrease_volume())
-        # q to stop playing
-        keyboard.add_hotkey('q', self.stop_sound())
 
     def set_sound(self, sound):
         """
