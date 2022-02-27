@@ -25,6 +25,9 @@ class Speaker:
         # set volume to 20%
         self.mixer.music.set_volume(0.2)
 
+        # pause status
+        self.paused = True
+
 
     def set_sound(self, sound):
         """
@@ -50,11 +53,7 @@ class Speaker:
 
         self.mixer.music.play()
 
-        # If you want to fade in the audio...
-        # for x in range(0,100):
-        #     pg.mixer.music.set_volume(float(x)/100.0)
-        #     time.sleep(.0075)
-        # check if playback has finished
+        self.paused = False
 
     def stop_sound(self):
         """
@@ -62,13 +61,21 @@ class Speaker:
         """
 
         self.mixer.music.stop()
+        self.paused = True
 
-    def is_playing(self):
+    def is_stopped(self):
         """
-        check if playing sound now
+        check if sound stopped, pause is not stop
         """
 
-        return self.mixer.music.get_busy()
+        return not self.mixer.music.get_busy()
+
+    def is_paused(self):
+        """
+        check if sound paused
+        """
+
+        return self.paused
 
     def volume(self):
         """
@@ -98,6 +105,7 @@ class Speaker:
         """
 
         self.mixer.music.pause()
+        self.paused = True
 
     def resume(self):
         """
@@ -105,13 +113,8 @@ class Speaker:
         """
 
         self.mixer.music.unpause()
+        self.paused = False
 
     def __del__(self):
         pg.quit()
 
-    # TODO: trigger event when music stop?
-    # pygame.mixer.music.set_endevent
-    '''
-    maybe use pause to indicate the user stop and unload it, and stop to indicate
-    oversleep with callback handling that. Test needed
-    '''
