@@ -25,15 +25,15 @@ class Speaker:
         # set volume to 20%
         self.mixer.music.set_volume(0.2)
 
-        # pause status
-        self.paused = True
+        # pause status, stop is not paused, only pause will turn paused to True
+        self.paused = False
 
 
     def set_sound(self, sound):
         """
         set the sound that will be play
 
-        sound: the name of the sound file
+        sound: the relative path to the sound file
         """
 
         self.sound = sound
@@ -53,22 +53,20 @@ class Speaker:
 
         self.mixer.music.play()
 
-        self.paused = False
-
     def stop_sound(self):
         """
         stop playing sound if any
         """
 
         self.mixer.music.stop()
-        self.paused = True
+        self.paused = False
 
     def is_stopped(self):
         """
         check if sound stopped, pause is not stop
         """
 
-        return not self.mixer.music.get_busy()
+        return (not self.mixer.music.get_busy()) and (not self.paused)
 
     def is_paused(self):
         """
