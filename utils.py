@@ -59,6 +59,8 @@ class Speaker:
         """
 
         self.mixer.music.stop()
+        # unload the file to free up resource
+        self.mixer.music.unload()
         self.paused = False
 
     def is_stopped(self):
