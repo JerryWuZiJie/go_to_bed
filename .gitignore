@@ -130,3 +130,6 @@ dmypy.json
 
 # test file
 test.py
+
+# output when using nohup command
+nohup.out
