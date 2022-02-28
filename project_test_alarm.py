@@ -11,6 +11,7 @@ import time
 import sys
 
 import schedule
+import pyttsx3
 import RPi.GPIO as GPIO
 
 from utils import Speaker  # for speaker
@@ -38,6 +39,13 @@ def pause_button(channel):
 # pause/resume music when button pressed
 GPIO.add_event_detect(BUTTON, GPIO.RISING, callback=pause_button)
 
+
+# setup tts engine
+voice_engine = pyttsx3.init()
+# voice_engine.setProperty('rate', 170)
+voice_engine.setProperty('volume', 1.0)
+voice_engine.setProperty('voice', "english-us")
+
 # initialize speaker object
 speaker = Speaker()
 # set the sound you want to play
@@ -59,16 +67,19 @@ def alarm():
         # if the sound finish playing and the user haven't push the button to
         # pause it, we consider the alarm failed to wake user up
         if speaker.is_stopped():
-            print("Failed to wake you up")
+            voice_engine.say("Failed to wake you up")
+            voice_engine.runAndWait()
         else:
-            print("Good morning!")
+            voice_engine.say("Good Morning!")
+            voice_engine.runAndWait()
     except KeyboardInterrupt:
         print("Ctrl C pressed, alarm stopped")
     finally:
         speaker.stop_sound()
 
 
-aram = schedule.every().day.at("07:00").do(alarm)  # repeat everyday at 7 AM
+# aram = schedule.every().day.at("07:00").do(alarm)  # repeat everyday at 7 AM
+aram = schedule.every().second.do(alarm)  # repeat everyday at 7 AM
 
 print("Program running... (use nohup to keep runninging the background)")
 print("nohup usage: https://www.computerhope.com/unix/unohup.htm#:~:text=nohup%20command%20%3E%20file%22.-,Examples,-nohup%20mycommand")
