@@ -32,3 +32,12 @@ Email: zw1711@nyu.edu
     Contains all low level functions and classes that can be used directly
 - ### demo.py
     A demo on how to use the functions and classes in utils.py
+
+## Common Errors
+- ```AttributeError: module 'pygame.mixer_music' has no attribute 'unload'``` \
+    update pygame to latest version
+- ```NotImplementedError: mixer module not available``` \
+    install libsdl2-mixer-2.0-0 by running ```sudo apt install```
+- ```OSError: libespeak.so.1: cannot open shared object file: No such file or directory``` \
+    Install espeak by running ```sudo apt install espeak```
+
