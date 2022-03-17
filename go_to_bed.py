@@ -84,6 +84,13 @@ class Speaker:
 
         return round(self.mixer.music.get_volume(), 1)
 
+    def set_volume(self, volume):
+        """
+        set volume
+        """
+
+        self.mixer.music.set_volume(volume)
+
     def increase_volume(self):
         """
         increase 10% of the total volume
