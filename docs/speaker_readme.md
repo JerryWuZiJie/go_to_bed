@@ -16,7 +16,7 @@ Please email [zw1711@nyu.edu](mailto:zw1711@nyu.edu) if you have any questions r
 * Connect the speaker to the terminal block on MAX98357
 
 Below is a picture of what the connection looks like: \
-![hardware_connection](/docs/speaker_readme_pics/hardware_connection.png)
+![hardware_connection](speaker_readme_pics/hardware_connection.png)
 
 You may notice that the “SD” and “GAIN” pins on MAX98357 are not connected. The module will work without connecting those two pins, but if you want to learn more about what they are, check [here](https://learn.adafruit.com/adafruit-max98357-i2s-class-d-mono-amp/pinouts).
 
@@ -27,7 +27,7 @@ Run the following command to install the driver (if for some reason you cannot r
 ```
 curl -sS https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/master/i2samp.sh | bash
 ```
-![driver_install](/docs/speaker_readme_pics/driver_install.png)
+![driver_install](speaker_readme_pics/driver_install.png)
 
 If it prompts `Activate '/dev/zero' playback in background?`, type “N”, otherwise there might not be sound after installing. For all other prompts, type “y”, the script will reboot your PI at the end. \
 After rebooting, run the script again. This time in the end it will ask if you want to test the speaker, type “y” and you should hear sound coming out from the speaker. \
@@ -57,7 +57,7 @@ Check [demo.py](https://github.com/JerryWuZiJie/go_to_bed/blob/main/demo.py) -> 
 * Calling the <code>pause()/resume()</code> methods with pause/resume the sound.
 
 Below is a screenshot of what the program looks like when running (subject to changes in future modification) \
-![run_demo](/docs/speaker_readme_pics/run_demo.png))
+![run_demo](speaker_readme_pics/run_demo.png))
 
 
 ## Section III: Explain in Depth
