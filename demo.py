@@ -51,7 +51,6 @@ def pause_button(channel):
 
 
 # pause/resume music when button pressed
-# TODO: bouncetime=20
 GPIO.add_event_detect(BUTTON, GPIO.RISING, callback=pause_button)
 
 # start playing, non-blocking. The sound will stop if program ends or
