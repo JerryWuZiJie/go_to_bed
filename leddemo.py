@@ -2,72 +2,142 @@ import RPi.GPIO as GPIO
 
 import time
 
-SDI = 10
+DIN = 10
 
-RCLK = 8
+CS = 8
 
-SRCLK = 11
+CLK = 11
 
-CLK_TIME = 0.05
+CLK_TIME = 0.01
+
+TEST_TIME = 0.01
+
 
 def setup():
 
-  GPIO.setwarnings(False)
+    GPIO.setmode(GPIO.BCM)
 
-  GPIO.setmode(GPIO.BCM)
+    # BCM pin numbering
 
-# BCM pin numbering
+    GPIO.setup(DIN, GPIO.OUT)
 
-  GPIO.setup(SDI, GPIO.OUT)
+    GPIO.setup(CS, GPIO.OUT)
 
-  GPIO.setup(RCLK, GPIO.OUT)
+    GPIO.setup(CLK, GPIO.OUT)
 
-  GPIO.setup(SRCLK, GPIO.OUT)
+    GPIO.output(DIN, GPIO.LOW)
 
-  GPIO.output(SDI, GPIO.LOW)
+    GPIO.output(CS, GPIO.HIGH)
 
-  GPIO.output(RCLK, GPIO.LOW)
+    GPIO.output(CLK, GPIO.LOW)
 
-  GPIO.output(SRCLK, GPIO.LOW)
 
 def pulse_clk(clk):
 
-  GPIO.output(clk, GPIO.LOW)
+    GPIO.output(clk, GPIO.LOW)
 
-  time.sleep(CLK_TIME)
+    time.sleep(CLK_TIME)
 
-  GPIO.output(clk, GPIO.HIGH)
+    GPIO.output(clk, GPIO.HIGH)
 
-  time.sleep(CLK_TIME)
+    time.sleep(CLK_TIME)
+
 
 def send_byte(byte):
 
-  GPIO.output(SDI,GPIO.LOW)
+    GPIO.output(DIN, GPIO.LOW)
 
-  GPIO.output(RCLK,GPIO.LOW)
+    GPIO.output(CS, GPIO.LOW)
 
-  bitarray = [int(b) for b in format(byte, '08b')]
+    bitarray = [int(b) for b in format(byte, '016b')]
+    # print("sending", bitarray)
 
-  for bit in bitarray:
+    for bit in bitarray:
 
-    GPIO.output(SDI, bit)
+        GPIO.output(DIN, bit)
 
-    pulse_clk(SRCLK)
+        pulse_clk(CLK)
 
-  pulse_clk(RCLK)
+    GPIO.output(CS, GPIO.HIGH)
+    GPIO.output(CLK, GPIO.LOW)
+    GPIO.output(DIN, GPIO.LOW)
 
-  GPIO.output(RCLK,GPIO.HIGH)
-  
-  GPIO.output(SDI,GPIO.LOW)
 
 if __name__ == '__main__':
 
-  setup()
+    setup()
+    
+    # new command
+    dummy = 0b0000
+    address = 0b1111
+    segment = 0b00000001
+    byte = (dummy << 12) + (address << 8) + segment
+    print("run test")
+    send_byte(byte)
+    time.sleep(TEST_TIME)
 
-  send_byte(0b1111111111111111)
+    # new command
+    dummy = 0b0000
+    address = 0b1111
+    segment = 0b00000000
+    byte = (dummy << 12) + (address << 8) + segment
+    print("stop test")
+    send_byte(byte)
+    time.sleep(TEST_TIME)
+    
+    # turn off
+    dummy = 0b0000
+    address = 0b1100
+    segment = 0b00000000
+    byte = (dummy << 12) + (address << 8) + segment
+    print("turn off")
+    send_byte(byte)
+    time.sleep(TEST_TIME)
+    
+    # turn on
+    dummy = 0b0000
+    address = 0b1100
+    segment = 0b00000001
+    byte = (dummy << 12) + (address << 8) + segment
+    print("turn on")
+    send_byte(byte)
+    time.sleep(TEST_TIME)
 
+    # new command
+    dummy = 0b0000
+    address = 0b1010
+    segment = 0b00000000
+    byte = (dummy << 12) + (address << 8) + segment
+    print("set intensity")
+    send_byte(byte)
+    time.sleep(TEST_TIME)
 
-  time.sleep(10)
-  
+    # set digit 0 to decode mode, rest to non-decode mode
+    dummy = 0b0000
+    address = 0b1001
+    segment = 0b00000001
+    byte = (dummy << 12) + (address << 8) + segment
+    print("set digit 0 to decode mode, rest to non-decode mode")
+    send_byte(byte)
+    time.sleep(TEST_TIME)
 
-  GPIO.cleanup()
+    # set 
+    dummy = 0b0000
+    address = 0b0001
+    segment = 0b00001110
+    byte = (dummy << 12) + (address << 8) + segment
+    print("digit 0 set p")
+    send_byte(byte)
+    time.sleep(TEST_TIME)
+
+    # set 
+    dummy = 0b0000
+    address = 0b0010
+    segment = 0b00000110
+    byte = (dummy << 12) + (address << 8) + segment
+    print("digit 1 set 1")
+    send_byte(byte)
+    time.sleep(TEST_TIME)
+    
+    time.sleep(10)
+    GPIO.cleanup()
