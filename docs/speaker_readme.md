@@ -45,7 +45,7 @@ After installing the driver, the speaker you connect to PI will just act like a 
 
 ## Section II: Library Functions
 The source code can be found [here](https://github.com/JerryWuZiJie/go_to_bed). You will need to install pygame to run the code. (Note: if you get `NotImplementedError: mixer module not available` error, install libsdl2-mixer-2.0-0 by running `sudo apt install libsdl2-mixer-2.0-0`; If you get error `AttributeError: module 'pygame.mixer_music' has no attribute 'unload'`, please upgrade pygame to latest version) \
-The functions and classes to use the MAX98357 module are in [utils.py](https://github.com/JerryWuZiJie/go_to_bed/blob/main/utils.py) -> class Speaker. \
+The functions and classes to use the MAX98357 module are in [go_to_bed.py](https://github.com/JerryWuZiJie/go_to_bed/blob/main/go_to_bed.py) -> class Speaker. \
 All the functions have comments that should be enough to understand the usage.
 
 ### **Demo Usage**:
