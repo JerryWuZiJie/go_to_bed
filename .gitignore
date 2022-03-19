@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # test file
-test.py
+test*.py
 
 # output when using nohup command
 nohup.out
