@@ -4,9 +4,15 @@ author: Jerry Wu
 This file contains the functionalities of the speaker
 """
 
+import time
+
 import pygame as pg
 
+from luma.led_matrix.device import max7219
+from luma.core.interface.serial import spi, noop
+from luma.core.virtual import viewport, sevensegment
 
+# TODO: change sound level from 0-1 to 0-100
 class Speaker:
     def __init__(self, freq=44100, bitsize=-16, channels=2, buffer=2048):
         """
@@ -125,3 +131,72 @@ class Speaker:
     def __del__(self):
         pg.quit()
 
+
+class LED:
+    def __init__(self, spi_ce=0):
+        """
+        initialize LED driver (max7219), using the luma library
+
+        spi_ce: the ce line that connects to the driver
+        """
+
+        # create seven segment device
+        # raspberry pi zero only have one SPI
+        serial = spi(port=0, device=spi_ce, gpio=noop())
+        self.device = max7219(serial, cascaded=1)
+        self.seg = sevensegment(self.device)
+
+        # display text
+        self.text = self.seg.text
+
+    def get_brightness(self):
+        return self.brightness
+
+    def increase_brightness(self):
+        """
+        increase brightness
+        """
+
+        self.set_brightness(self.brightness+10)
+
+    def decrease_brightness(self):
+        """
+        decrease brightness
+        """
+
+        self.set_brightness(self.brightness-10)
+
+    def set_brightness(self, level):
+        """
+        set the brightness
+
+        level: integer between 0 to 100
+        """
+
+        level = max(min(100, level), 0)  # scale between 0 - 100
+        self.brightness = level
+
+        level = int(level/100*255)  # scale to 0 - 255
+        self.seg.device.contrast(level)
+
+    def set_display(self, text):
+        """
+        set the display text, only 4 digits will get displayed
+        """
+
+        # if ':' is the third in text, turn on colon
+        if len(text) >= 3 and text[2] == ':':
+            self.text = text[:5]
+        else:
+            # add ' ' to turn off ':'
+            self.text = text[:2] + " " + text[2:4]
+
+        # update displayed text
+        self.seg.text = self.text
+
+    def get_display(self):
+        """
+        return the displayed text
+        """
+
+        return self.text
