@@ -9,7 +9,7 @@ import sys
 import RPi.GPIO as GPIO
 import pyttsx3
 import schedule
-from go_to_bed import Speaker  # for speaker
+from go_to_bed import Speaker, LED
 
 BUTTON = 17                     # pins connects to push button
 VOLUME = 0.2                    # volume range 0 to 1
@@ -19,9 +19,11 @@ GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)  # pull down by default
 
 ################################################################
 # speaker usage
+print("=== speaker demo ===")
+
 print("\n" + "-"*20 +
       "\nPress button connect on pin", BUTTON, "to pause/resume\n" +
-      "Press 'Ctrl C' to skip test\n"
+      "Press 'Ctrl C' to skip demo\n"
       + "-"*20 + "\n")
 
 # initialize speaker object
@@ -30,7 +32,7 @@ speaker = Speaker()
 speaker.set_sound("sound/Let Her Go.mp3")
 
 ### play sound ###
-print("\n--- testing play sound ---")
+print("\n--- play sound demo ---")
 
 
 def pause_button(channel):
@@ -67,23 +69,26 @@ except KeyboardInterrupt:
     speaker.stop_sound()
 
 ### TTS ###
-print("\n--- testing TTS ---")
-# # setup tts engine
-voice_engine = pyttsx3.init()
-# voice_engine.setProperty('rate', 170)
-voice_engine.setProperty('volume', VOLUME)
-voice_engine.setProperty('voice', "english-us")
+print("\n--- TTS demo ---")
+try:
+    # # setup tts engine
+    voice_engine = pyttsx3.init()
+    # voice_engine.setProperty('rate', 170)
+    voice_engine.setProperty('volume', VOLUME)
+    voice_engine.setProperty('voice', "english-us")
 
-print('"Failed to wake you up"')
-voice_engine.say("Failed to wake you up")
-voice_engine.runAndWait()
+    print('"Failed to wake you up"')
+    voice_engine.say("Failed to wake you up")
+    voice_engine.runAndWait()
 
-print('"Good Morning!"')
-voice_engine.say("Good Morning!")
-voice_engine.runAndWait()
+    print('"Good Morning!"')
+    voice_engine.say("Good Morning!")
+    voice_engine.runAndWait()
+except KeyboardInterrupt:
+    print("Ctrl C pressed, TTS stopped")
 
 ### schedule alarm ###
-print("\n--- testing schedule alarm ---")
+print("\n--- schedule alarm demo ---")
 
 
 def pause_alarm(channel):
@@ -138,4 +143,77 @@ except KeyboardInterrupt:
 
 # cancel schedule
 schedule.cancel_job(alarm)
+
+
 ################################################################
+# led usage
+print('\n\n\n')
+print("=== led demo ===")
+SLEEP_TIME = 1
+
+# initialize LED
+led = LED()
+
+### display ###
+print("\n--- display demo ---")
+try:
+    # display 8888
+    led.set_display("88888888")  # str more than 4 will be auto truncate
+    print(led.get_display())
+    time.sleep(SLEEP_TIME)
+
+    # clear display by setting empty string
+    led.set_display("")
+    print("clear display")
+    time.sleep(SLEEP_TIME)
+
+    def scrolling_message(led, msg, delay=0.5):
+        """
+        display scrolling text
+        """
+
+        width = 4
+        padding = " " * width
+        msg = padding + msg + padding
+
+        for i in range(len(msg) - width + 1):
+            led.set_display(msg[i:i + width])
+            time.sleep(delay)
+
+    # scrolling text
+    print("scrolling 31415926")
+    scrolling_message(led, "31415926")
+
+    # display 12:34
+    led.set_display("12:34")  # if third char is :, : will be turn on
+    print(led.get_display())
+    time.sleep(SLEEP_TIME)
+except KeyboardInterrupt:
+    print("Ctrl C pressed, display stopped")
+
+### brightness ###
+print("\n--- brightness demo ---")
+try:
+    # adjust brightness: 0 - 100
+    # there's only 32 brightness level in hardware
+    print("gradually increase brightness")
+    for i in range(101):
+        led.set_brightness(i)
+        time.sleep(0.05)
+    time.sleep(SLEEP_TIME)
+
+    print("set 50% brightness")
+    led.set_brightness(50)
+    time.sleep(SLEEP_TIME)
+
+    print("increase birghtness by 10%")
+    led.increase_brightness()
+    time.sleep(SLEEP_TIME)
+
+    print("decrease birghtness by 10%")
+    led.decrease_brightness()
+    time.sleep(SLEEP_TIME)
+except KeyboardInterrupt:
+    print("Ctrl C pressed, brightness stopped")
+
+print("All demo done")
