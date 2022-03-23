@@ -67,7 +67,7 @@ Table 2 shows all the command and corresponding address. \
 
 * Decode Mode: each digit can be set to either decode mode or non-decode mode (check table 4). If in decode mode, check table 5 for displayed character and corresponding data bits. If in non-decode mode, each data bits controls one of the segment as shown in table 6 \
 ![decode mode](led_readme_pics/decode_mode.png) \
-![code B](led_readme_pics/code_B.png) \
+![code B](led_readme_pics/code_b.png) \
 ![non-decode mode](led_readme_pics/non-decode.png) \
 
 * Intensity: change the light intensity by using PWM. \
