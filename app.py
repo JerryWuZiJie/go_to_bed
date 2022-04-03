@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 import schedule
 import RPi.GPIO as GPIO
+import spidev
 import busio
 import board
 # usage: https://learn.adafruit.com/monochrome-oled-breakouts/python-usage-2
@@ -21,13 +22,20 @@ import go_to_bed
 ### onetime tasks ###
 GPIO.setmode(GPIO.BCM)
 # TODO
-# setup RFID (SPI)
+# setup RFID (SPI 0 1)
 # TODO: connection https://ffund.github.io/compe-design-project/lab5/spi.html#:~:text=setup.py%20install-,Connect%20the%20MFRC522,-Connect%20the%20MFRC522
 rfid_reader = SimpleMFRC522(bus=0, device=1, spd=10000)
 # id, text = rfid_reader.read()  # or reader.read_no_block()
 # rfid_reader.write(text)  # or id, text_in = reader.write_no_block(text)
 
-# setup ADC for photodiode
+# setup ADC for photodiode (SPI 1, 0)
+# TODO: https://ffund.github.io/compe-design-project/lab7/adc.html
+ADC_CH0 = 0b01101000
+ADC_CH1 = 0b01111000
+ADC = spidev.SpiDev()
+ADC.open(0, 1)    # SPI Port 0, Chip Select 1
+ADC.mode = 0b00
+ADC.max_speed_hz = 1200000  # 1.2 MHz
 
 # setup OLED (I2C)
 OLED_WIDTH = 128
@@ -56,7 +64,7 @@ GPIO.setup(DOWN_PIN, GPIO.IN)
 GPIO.setup(OK_PIN, GPIO.IN)
 GPIO.setup(CANCEL_PIN, GPIO.IN)
 
-# setup led (SPI)
+# setup led (SPI 0 0)
 led = go_to_bed.LED()
 
 # setup speaker
@@ -69,9 +77,8 @@ available_files = []
 for (dirpath, dirnames, filenames) in os.walk("./sound"):
     available_files.extend(filenames)
 
+
 ### background tasks ###
-
-
 def run_webpage():
     """
     process that runs the webpage continuously
@@ -126,3 +133,17 @@ def update_OLED(text):
     # Display image
     oled.image(oled_img)
     oled.show()
+
+
+def update_photodiode():
+    """
+    update photodiode value
+    """
+    # TODO
+
+    readBytes = ADC.xfer2([ADC_CH0, 0x00])   # Read from CH0
+    digitalValue = (((readBytes[0] & 0b11) << 8) | readBytes[1])
+    ch0_v = digitalValue/1024 * 3.3  # 3.3 is Vref
+    readBytes = ADC.xfer2([ADC_CH1, 0x00])   # Read from CH1
+    digitalValue = (((readBytes[0] & 0b11) << 8) | readBytes[1])
+    ch1_v = digitalValue/1024 * 3.3  # 3.3 is Vref
