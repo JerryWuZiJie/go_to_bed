@@ -19,12 +19,12 @@ import go_to_bed
 ### onetime tasks ###
 GPIO.setmode(GPIO.BCM)
 # TODO
-# setup RFID
+# setup RFID (SPI)
 # setup ADC for photodiode
-# setup OLED
+# setup OLED (I2C)
 OLED_WIDTH = 128
-OLED_HEIGHT = 64  ## TODO: might need to change to 32
-OLED_ADDRESS = 0x3c  ## TODO: might subject to changes
+OLED_HEIGHT = 64  # TODO: might need to change to 32
+OLED_ADDRESS = 0x3c  # TODO: might subject to changes
 # Initialize I2C library busio
 i2c = busio.I2C(board.SCL, board.SDA)  # TODO: board.I2C()?
 oled = adafruit_ssd1306.SSD1306_I2C(OLED_WIDTH, OLED_HEIGHT,
@@ -32,6 +32,10 @@ oled = adafruit_ssd1306.SSD1306_I2C(OLED_WIDTH, OLED_HEIGHT,
 # clear display
 oled.fill(0)
 oled.show()
+# create canvas for displaying
+# Graphics stuff - create a canvas to draw/write on
+oled_img = Image.new("1", (oled.width, oled.height))  # "1" for 1 bit pixel
+oled_canvas = ImageDraw.Draw(oled_img)
 
 # setup push buttons
 # TODO: need to specify pins
@@ -46,8 +50,9 @@ GPIO.setup(CANCEL_PIN, GPIO.IN)
 
 # setup webpage
 
-# setup led
+# setup led (SPI)
 led = go_to_bed.LED()
+
 # setup speaker
 speaker = go_to_bed.Speaker()
 
@@ -57,6 +62,8 @@ for (dirpath, dirnames, filenames) in os.walk("./sound"):
     available_files.extend(filenames)
 
 ### background tasks ###
+
+
 def run_webpage():
     """
     process that runs the webpage continuously
@@ -89,30 +96,25 @@ def alarm_clock():
 
 
 ### other functions ###
-def update_OLED():
+def update_OLED(text):
     """
     update the OLED display
-    
-    # TODO
+
+    @param text: text to display
     """
-    # Graphics stuff - create a canvas to draw/write on
-    image = Image.new("1", (oled.width, oled.height))  # "1" for 1 bit pixel
-    draw = ImageDraw.Draw(image)
-    # Draw a black rectangle (background) with 5 pixel background
-    draw.rectangle((0, 0, oled.width-1, oled.height-1),  # (x0, y0, x1, y1)
-                outline=255, fill=0,
-                width=5)
-    # Draw some text
-    font = ImageFont.load_default()
-    text = "Hello world"
-    font_width, font_height = font.getsize(text)
-    # TODO: draw.multiline_text()
-    draw.text(  # position text in center
-        (oled.width // 2 - font_width // 2, oled.height // 2 - font_height // 2),
+    # Draw a black rectangle (background) to clear previous display
+    oled_canvas.rectangle((0, 0, oled.width-1, oled.height-1),  # (x0, y0, x1, y1)
+                          outline=255, fill=0, width=5)
+    # Draw the text
+    font = ImageFont.load_default()  # TODO: change to a suitable font later
+    # multiline_text usage: https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html#:~:text=ImageDraw.multiline_text
+    oled_canvas.multiline_text(
+        (0, 0),
         text,
         font=font,
         fill=255,
+        spacing=1  # 1 empty pixel between lines
     )
     # Display image
-    oled.image(image)
+    oled.image(oled_img)
     oled.show()
