@@ -42,8 +42,7 @@ def update_time():
     """
     process that update the display time on LED continuously
     """
-    # TODO
-    pass
+    led.set_display(time.strftime("%I:%M", time.localtime()))
 
 
 def check_sleeping():
