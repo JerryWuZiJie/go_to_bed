@@ -13,6 +13,8 @@ import busio
 import board
 # usage: https://learn.adafruit.com/monochrome-oled-breakouts/python-usage-2
 import adafruit_ssd1306
+# TODO: git clone https://github.com/pimylifeup/MFRC522-python
+from mfrc522 import SimpleMFRC522
 
 import go_to_bed
 
@@ -20,7 +22,13 @@ import go_to_bed
 GPIO.setmode(GPIO.BCM)
 # TODO
 # setup RFID (SPI)
+# TODO: connection https://ffund.github.io/compe-design-project/lab5/spi.html#:~:text=setup.py%20install-,Connect%20the%20MFRC522,-Connect%20the%20MFRC522
+rfid_reader = SimpleMFRC522(bus=0, device=1, spd=10000)
+# id, text = rfid_reader.read()  # or reader.read_no_block()
+# rfid_reader.write(text)  # or id, text_in = reader.write_no_block(text)
+
 # setup ADC for photodiode
+
 # setup OLED (I2C)
 OLED_WIDTH = 128
 OLED_HEIGHT = 64  # TODO: might need to change to 32
@@ -48,13 +56,13 @@ GPIO.setup(DOWN_PIN, GPIO.IN)
 GPIO.setup(OK_PIN, GPIO.IN)
 GPIO.setup(CANCEL_PIN, GPIO.IN)
 
-# setup webpage
-
 # setup led (SPI)
 led = go_to_bed.LED()
 
 # setup speaker
 speaker = go_to_bed.Speaker()
+
+# setup webpage
 
 # scan for available alarm music in the sound folder
 available_files = []
