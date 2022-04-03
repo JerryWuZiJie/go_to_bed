@@ -5,14 +5,24 @@ This file contains the functionalities of the speaker
 """
 
 import time
+from PIL import Image, ImageDraw, ImageFont
 
 import pygame as pg
 
 from luma.led_matrix.device import max7219
 from luma.core.interface.serial import spi, noop
 from luma.core.virtual import viewport, sevensegment
+import busio
+import board
+# usage: https://learn.adafruit.com/monochrome-oled-breakouts/python-usage-2
+import adafruit_ssd1306
+# TODO: git clone https://github.com/pimylifeup/MFRC522-python
+from mfrc522 import SimpleMFRC522
+import spidev
 
 # TODO: change sound level from 0-1 to 0-100
+
+
 class Speaker:
     def __init__(self, freq=44100, bitsize=-16, channels=2, buffer=2048):
         """
@@ -33,7 +43,6 @@ class Speaker:
 
         # pause status, stop is not paused, only pause will turn paused to True
         self.paused = False
-
 
     def set_sound(self, sound):
         """
@@ -200,3 +209,98 @@ class LED:
         """
 
         return self.text
+
+
+class OLED:
+    def __init__(self, width=128, height=64, addr=0x3c):
+        # Initialize I2C library busio
+        i2c = busio.I2C(board.SCL, board.SDA)  # TODO: board.I2C()?
+        self.oled = adafruit_ssd1306.SSD1306_I2C(width, height, i2c, addr=addr)
+
+        # clear display
+        self.oled.fill(0)
+        self.oled.show()
+
+        # create canvas for displaying
+        # "1" for 1 bit pixel
+        self.img = Image.new("1", (self.oled.width, self.oled.height))
+        self.canvas = ImageDraw.Draw(self.img)
+
+    def update_OLED(self, text):
+        """ 
+        update the OLED display
+
+        @param text: text to display
+        """
+
+        # Draw a black rectangle (background) to clear previous display
+        self.canvas.rectangle((0, 0, self.oled.width-1, self.oled.height-1),  # (x0, y0, x1, y1)
+                              outline=255, fill=0, width=5)
+        # Draw the text
+        font = ImageFont.load_default()  # TODO: change to a suitable font later
+        # multiline_text usage: https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html#:~:text=ImageDraw.multiline_text
+        self.canvas.multiline_text(
+            (0, 0),
+            text,
+            font=font,
+            fill=255,
+            spacing=1  # 1 empty pixel between lines
+        )
+        # Display image
+        self.oled.image(self.img)
+        self.oled.show()
+
+
+class RFID:
+    def __init__(self, spi_dev=0, spi_ce=1):
+        # TODO: connection https://ffund.github.io/compe-design-project/lab5/spi.html#:~:text=setup.py%20install-,Connect%20the%20MFRC522,-Connect%20the%20MFRC522
+        self.reader = SimpleMFRC522(bus=spi_dev, device=spi_ce, spd=10000)
+
+    def read(self):
+        """
+        read the RFID card
+        """
+
+        id, text = self.reader.read()
+        return id, text
+
+    def read_no_block(self):
+        """
+        read the RFID card without blocking
+        """
+
+        id, text = self.reader.read_no_block()
+        return id, text
+
+    def write(self, text):
+        """
+        write the RFID card
+        """
+
+        id, text_in = self.reader.write(text)
+        return id, text_in
+
+    def write_no_block(self, text):
+        """
+        write the RFID card without blocking
+        """
+
+        id, text_in = self.reader.write_no_block(text)
+        return id, text_in
+
+
+class ADC:
+    def __init__(self, spi_dev=1, spi_ce=0):
+        # TODO: https://ffund.github.io/compe-design-project/lab7/adc.html
+        self.cmd = [0b01101000, 0b01111000]   # command to read from ch0/1
+        self.adc = spidev.SpiDev()
+        self.adc.open(spi_dev, spi_ce)
+        self.adc.mode = 0b00
+        self.adc.max_speed_hz = 1200000  # 1.2 MHz
+
+    def get_val(self, channel):
+        readBytes = self.adc.xfer2([self.cmd[channel], 0x00])   # Read from CH0
+        digitalValue = ((readBytes[0] & 0b11) << 8) | readBytes[1]
+        voltage = digitalValue/1024 * 3.3  # 3.3 is Vref
+        # TODO: further processing
+        return voltage
