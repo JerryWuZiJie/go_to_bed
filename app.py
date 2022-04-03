@@ -4,23 +4,36 @@ all tasks to run are included in this file
 """
 import os
 import time
+import threading
 
 import schedule
+import RPi.GPIO as GPIO
 
 import go_to_bed
 
 ### onetime tasks ###
-### setup ###
-# setup led
-led = go_to_bed.LED()
-# setup speaker
-speaker = go_to_bed.Speaker()
+GPIO.setmode(GPIO.BCM)
 # TODO
 # setup RFID
 # setup ADC for photodiode
 # setup OLED
 # setup push buttons
+# TODO: need to specify pins
+UP_PIN = 0
+DOWN_PIN = 0
+OK_PIN = 0
+CANCEL_PIN = 0
+GPIO.setup(UP_PIN, GPIO.IN)
+GPIO.setup(DOWN_PIN, GPIO.IN)
+GPIO.setup(OK_PIN, GPIO.IN)
+GPIO.setup(CANCEL_PIN, GPIO.IN)
+
 # setup webpage
+
+# setup led
+led = go_to_bed.LED()
+# setup speaker
+speaker = go_to_bed.Speaker()
 
 # scan for available alarm music in the sound folder
 available_files = []
