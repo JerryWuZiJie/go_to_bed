@@ -288,19 +288,4 @@ class RFID:
         id, text_in = self.reader.write_no_block(text)
         return id, text_in
 
-
-class ADC:
-    def __init__(self, spi_dev=1, spi_ce=0):
-        # TODO: https://ffund.github.io/compe-design-project/lab7/adc.html
-        self.cmd = [0b01101000, 0b01111000]   # command to read from ch0/1
-        self.adc = spidev.SpiDev()
-        self.adc.open(spi_dev, spi_ce)
-        self.adc.mode = 0b00
-        self.adc.max_speed_hz = 1200000  # 1.2 MHz
-
-    def get_val(self, channel):
-        readBytes = self.adc.xfer2([self.cmd[channel], 0x00])   # Read from CH0
-        digitalValue = ((readBytes[0] & 0b11) << 8) | readBytes[1]
-        voltage = digitalValue/1024 * 3.3  # 3.3 is Vref
-        # TODO: further processing
-        return voltage
+# TODO: RC timing circuit for photodiode    

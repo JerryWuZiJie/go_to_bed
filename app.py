@@ -17,9 +17,6 @@ GPIO.setmode(GPIO.BCM)
 # setup RFID (SPI 0 1)
 rfid = go_to_bed.RFID()
 
-# setup ADC for photodiode (SPI 1, 0)
-adc = go_to_bed.ADC()
-
 # setup OLED (I2C)
 oled = go_to_bed.OLED()
 
