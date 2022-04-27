@@ -25,6 +25,7 @@ This document references the [KW4-56NXWB-P-Y manual](/datasheets/LED/KW4-56NXWB-
 
 * pin 8/5/10/3/7 (DIG 7 - 3) to pin 14/11/7/10/6
 * pin 22/14/16/20/23/21/15/17 (SEG DP, A-G) to pin 3/13/9/4/2/1/12/5
+* pin 23 to pin 8 (SEG DP to :)
 
 **MAX7219 Current limiting resistor**
 
