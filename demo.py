@@ -5,7 +5,6 @@ This file shows a simple demo of how to use speaker.py module
 """
 
 import time
-import sys
 import RPi.GPIO as GPIO
 import pyttsx3
 import schedule
@@ -229,4 +228,24 @@ try:
 except KeyboardInterrupt:
     print("Ctrl C pressed, brightness stopped")
 
-print("All demo done")
+
+################################################################
+# rfid usage
+print('\n\n\n')
+print("=== rfid demo ===")
+try:
+    rfid = go_to_bed.RFID()
+
+    print("write to rfid...")
+    rfid.write("some message")
+    print("write done")
+
+    print("read from rfid...")
+    id, text = rfid.read()
+    print(id)
+    print(text)
+except KeyboardInterrupt:
+    print("Ctrl C pressed, test skipped")
+
+
+print("=== All demo done ===")
