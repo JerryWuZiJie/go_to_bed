@@ -142,7 +142,7 @@ class Speaker:
 
 
 class LED:
-    def __init__(self, spi_ce=0):
+    def __init__(self, spi_dev=0, spi_ce=1):
         """
         initialize LED driver (max7219), using the luma library
 
@@ -151,7 +151,7 @@ class LED:
 
         # create seven segment device
         # raspberry pi zero only have one SPI
-        serial = spi(port=0, device=spi_ce, gpio=noop())
+        serial = spi(port=spi_dev, device=spi_ce, gpio=noop())
         self.device = max7219(serial, cascaded=1)
         self.seg = sevensegment(self.device)
 
@@ -252,9 +252,9 @@ class OLED:
 
 
 class RFID:
-    def __init__(self, spi_dev=0, spi_ce=1):
-        # TODO: connection https://ffund.github.io/compe-design-project/lab5/spi.html#:~:text=setup.py%20install-,Connect%20the%20MFRC522,-Connect%20the%20MFRC522
-        self.reader = SimpleMFRC522(bus=spi_dev, device=spi_ce, spd=10000)
+    def __init__(self):
+        # the library doesn't support custom spi port, can only use SPI0 CE0
+        self.reader = SimpleMFRC522()
 
     def read(self):
         """
