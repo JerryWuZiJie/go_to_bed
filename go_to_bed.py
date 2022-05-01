@@ -4,10 +4,7 @@ author: Jerry Wu
 This file contains the functionalities of the speaker
 """
 
-import time
 from PIL import Image, ImageDraw, ImageFont
-
-import pygame as pg
 
 from luma.led_matrix.device import max7219
 from luma.core.interface.serial import spi, noop
@@ -34,12 +31,15 @@ class Speaker:
         buffer: number of samples (experiment to get right sound)
         """
 
+        # only need to import in speaker, otherwise slow down the program
+        import pygame as pg
+
         # initialize mixer (for playing sound)
         self.mixer = pg.mixer
         self.mixer.init(freq, bitsize, channels, buffer)
 
         # set volume to 20%
-        self.mixer.music.set_volume(0.2)
+        self.mixer.music.set_volume(0.5)
 
         # pause status, stop is not paused, only pause will turn paused to True
         self.paused = False
