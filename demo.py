@@ -9,25 +9,29 @@ import sys
 import RPi.GPIO as GPIO
 import pyttsx3
 import schedule
-from go_to_bed import Speaker, LED
 
-BUTTON = 17                     # pins connects to push button
-VOLUME = 0.2                    # volume range 0 to 1
+import go_to_bed
+
+SNOOZE_BUT = 24                     # pins connects to snooze button
+STOP_BUT = 23                       # pins connects to stop button
+VOLUME = 1                          # volume range 0 to 1
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)  # pull down by default
+GPIO.setup(SNOOZE_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # pull up by default
+GPIO.setup(STOP_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # pull up by default
 
 ################################################################
 # speaker usage
 print("=== speaker demo ===")
 
 print("\n" + "-"*20 +
-      "\nPress button connect on pin", BUTTON, "to pause/resume\n" +
+      "\nPress button connect on pin", SNOOZE_BUT, "to pause/resume\n" +
+      "Press button connect on pin", STOP_BUT, "to stop\n" +
       "Press 'Ctrl C' to skip demo\n"
       + "-"*20 + "\n")
 
 # initialize speaker object
-speaker = Speaker()
+speaker = go_to_bed.Speaker()
 # set the sound you want to play
 speaker.set_sound("sound/Let Her Go.mp3")
 
@@ -43,7 +47,7 @@ def pause_button(channel):
     # debounce, wait for 20 milliseconds
     time.sleep(0.020)
 
-    if GPIO.input(channel):
+    if not GPIO.input(channel):
         if speaker.is_paused():
             speaker.resume()
             print("sound resumed")
@@ -52,8 +56,18 @@ def pause_button(channel):
             print("sound paused")
 
 
+def stop_button(channel):
+    """
+    callback function to stop sound
+    """
+
+    speaker.stop_sound()
+
+
 # pause/resume music when button pressed
-GPIO.add_event_detect(BUTTON, GPIO.RISING, callback=pause_button)
+GPIO.add_event_detect(SNOOZE_BUT, GPIO.FALLING, callback=pause_button)
+# stop music when buttoin pressed
+GPIO.add_event_detect(STOP_BUT, GPIO.FALLING, callback=stop_button)
 
 # start playing, non-blocking. The sound will stop if program ends or
 # stop_sound() is called
@@ -67,6 +81,10 @@ try:
 except KeyboardInterrupt:
     print("Ctrl C pressed, sound stopped")
     speaker.stop_sound()
+
+# remove event detect after test
+GPIO.remove_event_detect(SNOOZE_BUT)
+GPIO.remove_event_detect(STOP_BUT)
 
 ### TTS ###
 print("\n--- TTS demo ---")
@@ -91,21 +109,16 @@ except KeyboardInterrupt:
 print("\n--- schedule alarm demo ---")
 
 
-def pause_alarm(channel):
+def stop_alarm(channel):
     """
     callback function to pause/resume sound
     """
 
-    # debounce, wait for 20 milliseconds
-    time.sleep(0.020)
-
-    if GPIO.input(channel):
-        speaker.pause()
+    speaker.stop_sound()
 
 
-# pause alarm when button pressed
-GPIO.remove_event_detect(BUTTON)
-GPIO.add_event_detect(BUTTON, GPIO.RISING, callback=pause_alarm)
+# stop alarm when button pressed
+GPIO.add_event_detect(STOP_BUT, GPIO.FALLING, callback=stop_alarm)
 
 
 def alarm():
@@ -129,7 +142,7 @@ def alarm():
 
 
 # aram = schedule.every().day.at("07:00").do(alarm)  # repeat everyday at 7 AM
-aram = schedule.every(3).seconds.do(alarm)  # repeat every second
+aram = schedule.every(3).seconds.do(alarm)  # repeat every 3 seconds
 
 # nohup usage: https://www.computerhope.com/unix/unohup.htm#:~:text=nohup%20command%20%3E%20file%22.-,Examples,-nohup%20mycommand
 print("Program running... (use nohup to keep runninging the background)")
@@ -152,7 +165,7 @@ print("=== led demo ===")
 SLEEP_TIME = 1
 
 # initialize LED
-led = LED()
+led = go_to_bed.LED()
 
 ### display ###
 print("\n--- display demo ---")
