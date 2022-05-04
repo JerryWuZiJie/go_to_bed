@@ -236,32 +236,23 @@ def alarm_clock():
     """
 
     while True:
-        print("alarm clock")  # TODO: test
-        time.sleep(MIN_DELAY)
+        print("--- alarm clock ---")  # TODO: test
+        print("alarm time", alarm_time)  # TODO: test
+        print("current time", get_time())  # TODO: test
         if current_status[ALARM_STATUS] == ALARM_ON:
             hour, minute, _ = get_time()
             if [hour, minute] == up_time and current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
                 # set status to alarm if sleep before
                 current_status[MAIN_STATUS] = MAIN_STATUS_WAKEUP
             if [hour, minute] == alarm_time:
-                if current_status[MAIN_STATUS] == MAIN_STATUS_WAKEUP:
+                if current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
                     # move next alarm to SNOOZE_TIME minutes later
                     inc_time(alarm_time, minute=SNOOZE_TIME)
                     speaker.play_sound()  # TODO
+        print("alarm time", alarm_time)  # TODO: test
+        print("--- alarm clock ---")  # TODO: test
 
-
-def test_only():
-    """
-    TODO: for test only, delete after
-    """
-
-    try:
-        print("program started")
-        while True:
             time.sleep(MIN_DELAY)
-    except KeyboardInterrupt:
-        print("program finished")
-        GPIO.cleanup()
 
 
 if __name__ == "__main__":
