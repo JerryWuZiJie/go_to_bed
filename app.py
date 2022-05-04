@@ -13,7 +13,12 @@ import go_to_bed
 ### constants ###
 MIN_DELAY = 10          # delay for tasks need to update within minute precision
 SNOOZE_TIME = 10        # snooze time in minutes
-SOUND_PATH = "sound/Let Her Go.mp3" # path to sound file
+SOUND_PATH = "sound/Let Her Go.mp3"  # path to sound file
+# # scan for available alarm music in the sound folder
+# available_files = []
+# for (dirpath, dirnames, filenames) in os.walk("./sound"):
+#     available_files.extend(filenames)
+
 # MAIN_STATUS: 0: wakeup, 1: sleep, 2: alarm
 MAIN_STATUS = 'main status'
 MAIN_STATUS_WAKEUP = 0
@@ -40,42 +45,53 @@ ALARM_SWITCH = 22
 
 ### onetime tasks ###
 
-GPIO.setmode(GPIO.BCM)
-# setup red/green LED
-GPIO.setup(RED_LED, GPIO.LOW)  # low by default
-GPIO.setup(GREEN_LED, GPIO.LOW)  # low by default
-# setup stop/pause button
-GPIO.setup(SNOOZE_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # pull up by default
-GPIO.setup(STOP_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # pull up by default
-# setup alarm switch
-# pull up by default
-GPIO.setup(ALARM_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+def simple_GPIO_setup():
+    """
+    setup some devices that only need input or output
+    devices: red/green LEDs, snooze button, stop button, alarm switch
+    """
+
+    GPIO.setmode(GPIO.BCM)
+    # setup red/green LED
+    GPIO.setup(RED_LED, GPIO.LOW)  # low by default
+    GPIO.setup(GREEN_LED, GPIO.LOW)  # low by default
+    # setup stop/pause button pull up by default
+    GPIO.setup(SNOOZE_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.add_event_detect(SNOOZE_BUT, GPIO.FALLING, callback=pause_alarm)
+    GPIO.setup(STOP_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.add_event_detect(STOP_BUT, GPIO.FALLING, callback=stop_alarm)
+    # setup alarm switch pull up by default
+    GPIO.setup(ALARM_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    current_status[ALARM_STATUS] = GPIO.input(ALARM_SWITCH)
+    GPIO.add_event_detect(ALARM_SWITCH, GPIO.BOTH, callback=alarm_switch)
 
 
-# setup RFID
-rfid = go_to_bed.RFID()
+def peripheral_setup():
+    """
+    setup all the peripherals
+    peripherals: rfid, oled, led, speaker
+    """
 
-# setup OLED (I2C)
-oled = go_to_bed.OLED()
+    global rfid, oled, led, speaker
+    # setup RFID
+    rfid = go_to_bed.RFID()
 
-# setup led
-led = go_to_bed.LED()
+    # setup OLED (I2C)
+    oled = go_to_bed.OLED()
 
-# setup speaker
-speaker = go_to_bed.Speaker()
-speaker.set_sound(SOUND_PATH)  # FUTURE: let user choose sound
+    # setup led
+    led = go_to_bed.LED()
+
+    # setup speaker
+    speaker = go_to_bed.Speaker()
+    speaker.set_sound(SOUND_PATH)  # FUTURE: let user choose sound
 
 # setup webpage
-
-# scan for available alarm music in the sound folder
-available_files = []
-for (dirpath, dirnames, filenames) in os.walk("./sound"):
-    available_files.extend(filenames)
+# TODO
 
 
 ### interrupt ###
-
-
 def alarm_switch(channel):
     """
     callback function to determine alarm switch state
@@ -94,10 +110,6 @@ def alarm_switch(channel):
         GPIO.output(GREEN_LED, GPIO.HIGH)
 
 
-current_status[ALARM_STATUS] = GPIO.input(ALARM_SWITCH)
-GPIO.add_event_detect(ALARM_SWITCH, GPIO.BOTH, callback=alarm_switch)
-
-
 def pause_alarm(channel):
     """
     callback function to pause the alarm
@@ -109,13 +121,10 @@ def pause_alarm(channel):
     if not GPIO.input(channel):
         # stop sound
         speaker.stop_sound()
-        
+
         # snooze alarm
         hour, minute, _ = get_time()
         set_time(alarm_time, hour, (minute + SNOOZE_TIME))
-
-
-GPIO.add_event_detect(SNOOZE_BUT, GPIO.FALLING, callback=pause_alarm)
 
 
 def stop_alarm(channel):
@@ -135,9 +144,6 @@ def stop_alarm(channel):
 
         # set alarm_time to up_time
         set_time(alarm_time, *up_time)
-
-
-GPIO.add_event_detect(STOP_BUT, GPIO.FALLING, callback=stop_alarm)
 
 
 ### helper functions ###
@@ -230,6 +236,7 @@ def alarm_clock():
     """
 
     while True:
+        print("alarm clock")  # TODO: test
         time.sleep(MIN_DELAY)
         if current_status[ALARM_STATUS] == ALARM_ON:
             hour, minute, _ = get_time()
@@ -241,3 +248,38 @@ def alarm_clock():
                     # move next alarm to SNOOZE_TIME minutes later
                     inc_time(alarm_time, minute=SNOOZE_TIME)
                     speaker.play_sound()  # TODO
+
+
+def test_only():
+    """
+    TODO: for test only, delete after
+    """
+
+    try:
+        print("program started")
+        while True:
+            time.sleep(MIN_DELAY)
+    except KeyboardInterrupt:
+        print("program finished")
+        GPIO.cleanup()
+
+
+if __name__ == "__main__":
+    # one time tasks
+    simple_GPIO_setup()
+    peripheral_setup()
+
+    # background tasks
+    alarm_clock_thread = threading.Thread(target=alarm_clock, daemon=True)
+
+    alarm_clock_thread.start()
+
+    # TODO: test only
+    try:
+        print("program started")
+        ex = input('type exit to exit: ')
+        while ex != 'exit':
+            ex = input('type exit to exit: ')
+    except KeyboardInterrupt:
+        print("program finished")
+        GPIO.cleanup()
