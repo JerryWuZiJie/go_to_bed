@@ -218,34 +218,38 @@ class OLED:
         self.oled = adafruit_ssd1306.SSD1306_I2C(width, height, i2c, addr=addr)
 
         # clear display
-        self.oled.fill(0)
-        self.oled.show()
+        self.clear_display()
 
         # create canvas for displaying
         # "1" for 1 bit pixel
         self.img = Image.new("1", (self.oled.width, self.oled.height))
         self.canvas = ImageDraw.Draw(self.img)
+        # display text font
+        self.font = ImageFont.load_default()  # TODO: change to a suitable font later
 
-    def update_OLED(self, text):
-        """ 
-        update the OLED display
-
-        @param text: text to display
+    def clear_display(self):
+        """
+        clear the display
         """
 
-        # Draw a black rectangle (background) to clear previous display
-        self.canvas.rectangle((0, 0, self.oled.width-1, self.oled.height-1),  # (x0, y0, x1, y1)
-                              outline=255, fill=0, width=5)
-        # Draw the text
-        font = ImageFont.load_default()  # TODO: change to a suitable font later
-        # multiline_text usage: https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html#:~:text=ImageDraw.multiline_text
-        self.canvas.multiline_text(
-            (0, 0),
-            text,
-            font=font,
-            fill=255,
-            spacing=1  # 1 empty pixel between lines
-        )
+        self.oled.fill(0)
+        self.oled.show()
+
+    def add_text(self, text, x=0, y=0):
+        """
+        add text to the display
+
+        text: the text to display
+        x, y: the position of the text
+        """
+
+        self.canvas.text((x, y), text, font=self.font, fill=255)
+
+    def update_display(self):
+        """ 
+        update the OLED display
+        """
+
         # Display image
         self.oled.image(self.img)
         self.oled.show()
