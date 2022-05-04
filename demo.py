@@ -163,19 +163,19 @@ print('\n\n\n')
 print("=== led demo ===")
 SLEEP_TIME = 1
 
-# initialize LED
-led = go_to_bed.LED()
+# initialize clock display
+clock = go_to_bed.Clock()
 
 ### display ###
 print("\n--- display demo ---")
 try:
     # display 8888
-    led.set_display("88888888")  # str more than 4 will be auto truncate
-    print(led.get_display())
+    clock.set_display("88888888")  # str more than 4 will be auto truncate
+    print(clock.get_display())
     time.sleep(SLEEP_TIME)
 
     # clear display by setting empty string
-    led.set_display("")
+    clock.set_display("")
     print("clear display")
     time.sleep(SLEEP_TIME)
 
@@ -194,11 +194,11 @@ try:
 
     # scrolling text
     print("scrolling 31415926")
-    scrolling_message(led, "31415926")
+    scrolling_message(clock, "31415926")
 
     # display 12:34
-    led.set_display("12:34")  # if third char is :, : will be turn on
-    print(led.get_display())
+    clock.set_display("12:34")  # if third char is :, : will be turn on
+    print(clock.get_display())
     time.sleep(SLEEP_TIME)
 except KeyboardInterrupt:
     print("Ctrl C pressed, display stopped")
@@ -210,20 +210,20 @@ try:
     # there's only 32 brightness level in hardware
     print("gradually increase brightness")
     for i in range(101):
-        led.set_brightness(i)
+        clock.set_brightness(i)
         time.sleep(0.05)
     time.sleep(SLEEP_TIME)
 
     print("set 50% brightness")
-    led.set_brightness(50)
+    clock.set_brightness(50)
     time.sleep(SLEEP_TIME)
 
     print("increase birghtness by 10%")
-    led.increase_brightness()
+    clock.increase_brightness()
     time.sleep(SLEEP_TIME)
 
     print("decrease birghtness by 10%")
-    led.decrease_brightness()
+    clock.decrease_brightness()
     time.sleep(SLEEP_TIME)
 except KeyboardInterrupt:
     print("Ctrl C pressed, brightness stopped")

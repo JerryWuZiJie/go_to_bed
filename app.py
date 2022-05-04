@@ -70,10 +70,10 @@ def simple_GPIO_setup():
 def peripheral_setup():
     """
     setup all the peripherals
-    peripherals: rfid, oled, led, speaker
+    peripherals: rfid, oled, clock, speaker
     """
 
-    global rfid, oled, led, speaker
+    global rfid, oled, clock, speaker
     # setup RFID
     rfid = go_to_bed.RFID()
 
@@ -81,7 +81,7 @@ def peripheral_setup():
     oled = go_to_bed.OLED()
 
     # setup led
-    led = go_to_bed.LED()
+    clock = go_to_bed.Clock()
 
     # setup speaker
     speaker = go_to_bed.Speaker()
@@ -217,7 +217,7 @@ def update_time():
 
     while True:
         hour, minute, _ = get_time()
-        led.set_display(str(hour)+":"+str(minute))
+        clock.set_display(str(hour)+":"+str(minute))
         time.sleep(MIN_DELAY)
 
 

@@ -141,7 +141,7 @@ class Speaker:
         pg.quit()
 
 
-class LED:
+class Clock:
     def __init__(self, spi_dev=0, spi_ce=1):
         """
         initialize LED driver (max7219), using the luma library
