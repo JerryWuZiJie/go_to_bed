@@ -212,13 +212,15 @@ def run_webpage():
 
 def update_time():
     """
-    update the time shown on LED every MIN_DELAY seconds
+    update the time shown on LED every 1 seconds, the ':' will blink
     """
 
     while True:
         hour, minute, _ = get_time()
         clock.set_display(str(hour)+":"+str(minute))
-        time.sleep(MIN_DELAY)
+        time.sleep(1)
+        clock.set_display(str(hour)+str(minute))
+        time.sleep(1)
 
 
 def check_sleeping():
@@ -252,7 +254,7 @@ def alarm_clock():
         print("alarm time", alarm_time)  # TODO: test
         print("--- alarm clock ---")  # TODO: test
 
-            time.sleep(MIN_DELAY)
+        time.sleep(MIN_DELAY)
 
 
 if __name__ == "__main__":
@@ -260,10 +262,13 @@ if __name__ == "__main__":
     simple_GPIO_setup()
     peripheral_setup()
 
-    # background tasks
-    alarm_clock_thread = threading.Thread(target=alarm_clock, daemon=True)
-
-    alarm_clock_thread.start()
+    # background tasks    
+    background_tasks = [alarm_clock, update_time]
+    
+    # start background tasks
+    for task in background_tasks:
+        thread = threading.Thread(target=task, daemon=True)
+        thread.start()
 
     # TODO: test only
     try:
@@ -272,5 +277,6 @@ if __name__ == "__main__":
         while ex != 'exit':
             ex = input('type exit to exit: ')
     except KeyboardInterrupt:
-        print("program finished")
-        GPIO.cleanup()
+        pass
+    print("program finished, perform GPIO cleanup")
+    GPIO.cleanup()
