@@ -49,6 +49,7 @@ alarm_time = up_time    # time to play alarm clock sound (hour, minute)
 oled_timeout = 0        # time for last oled operation (time.time())
 sleep_info = []         # list to store sleep info (time, follow schedule)
 light_threshold = 2     # threshold voltage for light sensor, user tunable
+time_12_hour = False    # 12 hour mode or 24 hour mode
 
 # GPIO pins
 SNOOZE_BUT = 24
@@ -312,6 +313,11 @@ def update_time():
 
     while True:
         hour, minute, _ = get_time()
+        if time_12_hour:
+            hour %= 12
+            if hour == 0:
+                hour = 12
+
         clock.set_display(str(hour)+":"+str(minute))
         time.sleep(1)
         clock.set_display(str(hour)+str(minute))
