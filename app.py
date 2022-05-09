@@ -20,6 +20,7 @@ SOUND_PATH = "sound/Let Her Go.mp3"  # path to sound file
 # available_files = []
 # for (dirpath, dirnames, filenames) in os.walk("./sound"):
 #     available_files.extend(filenames)
+BED_TIME_THRESHOLD = 5  # minutes
 
 # MAIN_STATUS: 0: wakeup, 1: sleep, 2: alarm
 MAIN_STATUS = 'main status'
@@ -42,6 +43,7 @@ current_status = {MAIN_STATUS: MAIN_STATUS_WAKEUP,
                   ALARM_STATUS: ALARM_OFF,
                   OLED_STATUS: OLED_DISPLAY}
 bed_time = [22, 30]     # time to sleep (hour, minute)
+today_bed_time = 0      # today's bed time (time.time())
 up_time = [7, 0]        # time to wake up (hour, minute)
 alarm_time = up_time    # time to play alarm clock sound (hour, minute)
 oled_timeout = 0        # time for last oled operation (time.time())
@@ -285,13 +287,24 @@ def check_sleeping():
             if h == bed_time[0] and m == bed_time[1]:
                 current_status[MAIN_STATUS] = MAIN_STATUS_NEED_SLEEP
                 oled_update_display()
+                today_bed_time = time.time()
 
         if current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
+            # check phone
             rfid.read()  # will block until RFID is read
             voltage = light_sensor.read()
+
+            # check light sensor
             if voltage <= light_threshold:
                 current_status[MAIN_STATUS] = MAIN_STATUS_SLEEP
                 oled_update_display()
+
+                # if sleep within BED_TIME_THRESHOLD, count as follow schedule
+                if (time.time() - today_bed_time)/60 <= BED_TIME_THRESHOLD:
+                    sleep_info.append(bed_time, True)
+                else:
+                    h, m, _ = get_time()
+                    sleep_info.append([h, m], False)
 
         time.sleep(MIN_DELAY)
 
