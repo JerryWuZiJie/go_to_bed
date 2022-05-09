@@ -224,8 +224,11 @@ class OLED:
         # "1" for 1 bit pixel
         self.img = Image.new("1", (self.oled.width, self.oled.height))
         self.canvas = ImageDraw.Draw(self.img)
+        self.x = 0
+        self.y = 0
         # display text font
         self.font = ImageFont.load_default()  # TODO: change to a suitable font later
+        self.font_height = self.font.getsize("A")[1]
 
     def clear_display(self):
         """
@@ -235,7 +238,7 @@ class OLED:
         self.oled.fill(0)
         self.oled.show()
 
-    def add_text(self, text, x=0, y=0):
+    def add_text(self, text, x=None, y=None):
         """
         add text to the display
 
@@ -243,7 +246,16 @@ class OLED:
         x, y: the position of the text
         """
 
-        self.canvas.text((x, y), text, font=self.font, fill=255)
+        if x:
+            self.x = x
+        else:
+            self.x = 0
+        if y:
+            self.y = y
+        else:
+            self.y += self.font_height
+
+        self.canvas.text((self.x, self.y), text, font=self.font, fill=255)
 
     def update_display(self):
         """ 
