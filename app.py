@@ -101,7 +101,7 @@ def peripheral_setup():
     # setup speaker
     speaker = go_to_bed.Speaker()
     speaker.set_sound(SOUND_PATH)  # FUTURE: let user choose sound
-    
+
     # setup light sensor
     light_sensor = go_to_bed.ADC()
 
@@ -305,18 +305,22 @@ def alarm_clock():
         print("--- alarm clock ---")  # TODO: test
         print("alarm time", alarm_time)  # TODO: test
         print("current time", get_time())  # TODO: test
-        if current_status[ALARM_STATUS] == ALARM_ON:
-            h, m, _ = get_time()
-            if current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
-                if h == up_time[0] and m == up_time[1]:
+
+        h, m, _ = get_time()
+        if current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
+            if h == up_time[0] and m == up_time[1]:
+                if current_status[ALARM_STATUS] == ALARM_ON:
                     # set status to alarm if sleep before
                     current_status[MAIN_STATUS] = MAIN_STATUS_ALARM
-                    oled_update_display()
-            if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
-                if h == alarm_time[0] and m == alarm_time[1]:
-                    # move next alarm to SNOOZE_TIME minutes later
-                    inc_time(alarm_time, minute=SNOOZE_TIME)
-                    speaker.play_sound()  # TODO
+                else:
+                    current_status[MAIN_STATUS] = MAIN_STATUS_WAKEUP
+                oled_update_display()
+
+        if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
+            if h == alarm_time[0] and m == alarm_time[1]:
+                # move next alarm to SNOOZE_TIME minutes later
+                inc_time(alarm_time, minute=SNOOZE_TIME)
+                speaker.play_sound()  # TODO
         print("alarm time", alarm_time)  # TODO: test
         print("--- alarm clock ---")  # TODO: test
 
