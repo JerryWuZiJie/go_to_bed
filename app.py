@@ -14,13 +14,13 @@ import go_to_bed
 MIN_DELAY = 10          # delay for tasks need to update within minute precision
 FAST_DELAY = 0.01       # delay for tasks need to update immediately
 SNOOZE_TIME = 10        # snooze time in minutes
-OLED_TIMEOUT = 5        # go back to OLED_DISPLAY mode after delay (s)
 SOUND_PATH = "sound/Let Her Go.mp3"  # path to sound file
 # FUTURE scan for available alarm music in the sound folder
 # available_files = []
 # for (dirpath, dirnames, filenames) in os.walk("./sound"):
 #     available_files.extend(filenames)
 BED_TIME_THRESHOLD = 5  # minutes
+SETTING_ITEM = ['bed time', 'wake up time']
 
 # MAIN_STATUS: 0: wakeup, 1: sleep, 2: alarm
 MAIN_STATUS = 'main status'
@@ -35,8 +35,15 @@ ALARM_OFF = 1
 # OLED_STATUS
 OLED_STATUS = 'oled status'
 OLED_DISPLAY = 0
-OLED_SETTINGS = 1
-OLED_SETTING_TIME = 2
+OLED_SETTING = 1
+OLED_SET_HOUR = 2
+OLED_SET_MINUTE = 3
+
+# setting status  TODO: when oled timeout or confirm, update status
+# indicate which option is currently selected
+SETTING_SELECTION = 0
+# display time on oled
+SETTING_TIME = 1
 
 # global variables
 current_status = {MAIN_STATUS: MAIN_STATUS_WAKEUP,
@@ -46,10 +53,11 @@ bed_time = [22, 30]     # time to sleep (hour, minute)
 today_bed_time = 0      # today's bed time (time.time())
 up_time = [7, 0]        # time to wake up (hour, minute)
 alarm_time = up_time    # time to play alarm clock sound (hour, minute)
-oled_timeout = 0        # time for last oled operation (time.time())
 sleep_info = []         # list to store sleep info (time, follow schedule)
 light_threshold = 2     # threshold voltage for light sensor, user tunable
 time_12_hour = False    # 12 hour mode or 24 hour mode
+setting_status = {SETTING_SELECTION: 0,
+                  SETTING_TIME: bed_time}
 
 # GPIO pins
 SNOOZE_BUT = 24
@@ -94,8 +102,8 @@ def simple_GPIO_setup():
     GPIO.setup(ENCODER_BUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     # add event detect
     GPIO.add_event_detect(ENCODER_L, GPIO.FALLING,
-                          callback=rotation, bouncetime=20)
-    GPIO.add_event_detect(ENCODER_BUT, GPIO.RISING, callback=push_button)
+                          callback=encoder_rotate, bouncetime=20)
+    GPIO.add_event_detect(ENCODER_BUT, GPIO.RISING, callback=encoder_but)
     # add timer
     global encoder_ccw_time, encoder_cw_time
     encoder_ccw_time = time.time()
@@ -166,6 +174,18 @@ def pause_alarm(channel):
             hour, minute, _ = get_time()
             set_time(alarm_time, hour, (minute + SNOOZE_TIME))
 
+        # act as back button
+        elif current_status[OLED_STATUS] == OLED_SETTING:
+            setting_status[SETTING_SELECTION] = 0  # set selection back to 0
+            current_status[OLED_STATUS] = OLED_DISPLAY
+            oled_update_display()
+        elif current_status[OLED_STATUS] == OLED_SET_HOUR:
+            current_status[OLED_STATUS] = OLED_SETTING
+            oled_update_display()
+        elif current_status[OLED_STATUS] == OLED_SET_MINUTE:
+            current_status[OLED_STATUS] = OLED_SET_HOUR
+            oled_update_display()
+
 
 def stop_alarm(channel):
     """
@@ -188,28 +208,77 @@ def stop_alarm(channel):
             set_time(alarm_time, *up_time)
 
 
-def rotation(channel):
+def encoder_rotate(channel):
     assert channel == ENCODER_L
 
     global encoder_ccw_time, encoder_cw_time
     if GPIO.input(ENCODER_R) != GPIO.HIGH:
-        if time.time() - cw_time < 0.1:
+        if time.time() - encoder_cw_time < 0.1:
             pass  # still clockwise
         else:
-            ccw_time = time.time()
-            print("counter clockwise")
+            encoder_ccw_time = time.time()
+            print("counter clockwise")  # TODO: test
+            # TODO
+            if current_status[OLED_STATUS] == OLED_SETTING:
+                setting_status[SETTING_SELECTION] += 1
+            elif current_status[OLED_STATUS] == OLED_SET_HOUR:
+                setting_status[SETTING_TIME][0] = (
+                    setting_status[SETTING_TIME][0] + 1) % 24
+            elif current_status[OLED_STATUS] == OLED_SET_MINUTE:
+                setting_status[SETTING_TIME][1] = (
+                    setting_status[SETTING_TIME][1] + 1) % 60
     else:
-        if time.time() - ccw_time < 0.1:
+        if time.time() - encoder_ccw_time < 0.1:
             pass  # still counter clockwise
         else:
-            cw_time = time.time()
-            print("clockwise")
+            encoder_cw_time = time.time()
+            print("clockwise")  # TODO: test
+            # TODO
+            if current_status[OLED_STATUS] == OLED_SETTING:
+                setting_status[SETTING_SELECTION] -= 1
+            elif current_status[OLED_STATUS] == OLED_SET_HOUR:
+                setting_status[SETTING_TIME][0] = (
+                    setting_status[SETTING_TIME][0] - 1) % 24
+            elif current_status[OLED_STATUS] == OLED_SET_MINUTE:
+                setting_status[SETTING_TIME][1] = (
+                    setting_status[SETTING_TIME][1] - 1) % 60
+
+    oled_update_display()
 
 
-def push_button(channel):
+def encoder_but(channel):
     time.sleep(0.020)
     if GPIO.input(channel):
-        print("Button pressed")
+        print("Button pressed")  # TODO: test
+        if current_status[OLED_STATUS] == OLED_DISPLAY:
+            current_status[OLED_STATUS] = OLED_SETTING
+            oled_update_display()
+        elif current_status[OLED_STATUS] == OLED_SETTING:
+            # determine whether to set bed time or up time
+            if setting_status[SETTING_SELECTION] == 0:
+                setting_status[SETTING_TIME] = bed_time
+            else:
+                setting_status[SETTING_TIME] = up_time
+
+            current_status[OLED_STATUS] = OLED_SET_HOUR
+            oled_update_display()
+        elif current_status[OLED_STATUS] == OLED_SET_HOUR:
+            current_status[OLED_STATUS] = OLED_SET_MINUTE
+            oled_update_display()
+        elif current_status[OLED_STATUS] == OLED_SET_MINUTE:
+            # store current setting
+            if setting_status[SETTING_SELECTION] == 0:
+                bed_time[0] = setting_status[SETTING_TIME][0]
+                bed_time[1] = setting_status[SETTING_TIME][1]
+                print(bed_time)  # TODO: test
+            else:
+                up_time[0] = setting_status[SETTING_TIME][0]
+                up_time[1] = setting_status[SETTING_TIME][1]
+                print(up_time)  # TODO: test
+
+            setting_status[SETTING_SELECTION] = 0
+            current_status[OLED_STATUS] = OLED_DISPLAY
+            oled_update_display()
 
 
 ### helper functions ###
@@ -287,12 +356,18 @@ def oled_update_display():
             oled.add_text('sleep')  # TODO: change to picture
         elif current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
             oled.add_text('alarm')  # TODO: change to picture
-    elif current_status[OLED_STATUS] == OLED_SETTINGS:
-        oled.add_text('> sleep time')  # TODO: change line?
-        oled.add_text('wake up time')
-    elif current_status[OLED_STATUS] == OLED_SETTING_TIME:
-        h, m, _ = get_time()
-        oled.add_text(f'{h:02d}:{m:02d}')
+    elif current_status[OLED_STATUS] == OLED_SETTING:
+        for i in range(len(SETTING_ITEM)):
+            if i == (setting_status[SETTING_SELECTION] % len(SETTING_ITEM)):
+                oled.add_text('> ' + SETTING_ITEM[i])
+            else:
+                oled.add_text(SETTING_ITEM[i])
+    elif current_status[OLED_STATUS] == OLED_SET_HOUR:
+        h, m = setting_status[SETTING_TIME]
+        oled.add_text(f'-{h:02d}-:{m:02d}')
+    elif current_status[OLED_STATUS] == OLED_SET_MINUTE:
+        h, m = setting_status[SETTING_TIME]
+        oled.add_text(f'{h:02d}:-{m:02d}-')
 
     oled.update_display()
 
