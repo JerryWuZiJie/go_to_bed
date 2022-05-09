@@ -316,7 +316,7 @@ class ADC:
         self.spi.mode = 0b00
         self.spi.max_speed_hz = 1200000  # 1.2 MHz
 
-    def get_val(self, channel):
+    def read(self, channel):
         readBytes = self.spi.xfer2([self.cmd[channel], 0x00])   # Read from CH0
         digitalValue = ((readBytes[0] & 0b11) << 8) | readBytes[1]
         voltage = digitalValue/1024 * 3.3  # 3.3 is Vref

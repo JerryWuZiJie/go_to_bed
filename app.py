@@ -87,7 +87,7 @@ def peripheral_setup():
     peripherals: rfid, oled, clock, speaker
     """
 
-    global rfid, oled, clock, speaker
+    global rfid, oled, clock, speaker, light_sensor
     # setup RFID
     rfid = go_to_bed.RFID()
 
@@ -100,6 +100,9 @@ def peripheral_setup():
     # setup speaker
     speaker = go_to_bed.Speaker()
     speaker.set_sound(SOUND_PATH)  # FUTURE: let user choose sound
+
+    # setup light sensor
+    light_sensor = go_to_bed.ADC()
 
 # setup webpage
 # TODO
