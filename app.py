@@ -122,6 +122,7 @@ def pause_alarm(channel):
         # stop sound
         speaker.stop_sound()
 
+        if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
         # snooze alarm
         hour, minute, _ = get_time()
         set_time(alarm_time, hour, (minute + SNOOZE_TIME))
@@ -139,8 +140,10 @@ def stop_alarm(channel):
         # turn off alarm
         speaker.stop_sound()
 
+        if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
         # set MAIN_STATUS to wakeup
         current_status[MAIN_STATUS] = MAIN_STATUS_WAKEUP
+            oled_display()
 
         # set alarm_time to up_time
         set_time(alarm_time, *up_time)
@@ -243,11 +246,11 @@ def alarm_clock():
         print("current time", get_time())  # TODO: test
         if current_status[ALARM_STATUS] == ALARM_ON:
             hour, minute, _ = get_time()
-            if [hour, minute] == up_time and current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
+            if current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP and [hour, minute] == up_time:
                 # set status to alarm if sleep before
-                current_status[MAIN_STATUS] = MAIN_STATUS_WAKEUP
-            if [hour, minute] == alarm_time:
-                if current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
+                current_status[MAIN_STATUS] = MAIN_STATUS_ALARM
+                oled_display()
+            if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM and [hour, minute] == alarm_time:
                     # move next alarm to SNOOZE_TIME minutes later
                     inc_time(alarm_time, minute=SNOOZE_TIME)
                     speaker.play_sound()  # TODO
