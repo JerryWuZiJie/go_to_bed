@@ -235,6 +235,8 @@ class OLED:
         clear the display
         """
 
+        self.x = 0
+        self.y = 0
         self.oled.fill(0)
         self.oled.show()
 

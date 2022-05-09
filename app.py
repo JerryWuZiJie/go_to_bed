@@ -12,7 +12,9 @@ import go_to_bed
 
 ### constants ###
 MIN_DELAY = 10          # delay for tasks need to update within minute precision
+FAST_DELAY = 0.01       # delay for tasks need to update immediately
 SNOOZE_TIME = 10        # snooze time in minutes
+OLED_TIMEOUT = 5        # go back to OLED_DISPLAY mode after delay (s)
 SOUND_PATH = "sound/Let Her Go.mp3"  # path to sound file
 # # scan for available alarm music in the sound folder
 # available_files = []
@@ -22,19 +24,28 @@ SOUND_PATH = "sound/Let Her Go.mp3"  # path to sound file
 # MAIN_STATUS: 0: wakeup, 1: sleep, 2: alarm
 MAIN_STATUS = 'main status'
 MAIN_STATUS_WAKEUP = 0
-MAIN_STATUS_SLEEP = 1
-MAIN_STATUS_ALARM = 2
+MAIN_STATUS_NEED_SLEEP = 1
+MAIN_STATUS_SLEEP = 2
+MAIN_STATUS_ALARM = 3
 # ALARM_SWITCH: 0: on, 1: off
 ALARM_STATUS = 'alarm status'
 ALARM_ON = 0
 ALARM_OFF = 1
+# OLED_STATUS
+OLED_STATUS = 'oled status'
+OLED_DISPLAY = 0
+OLED_SETTINGS = 1
+OLED_SETTING_TIME = 2
 
 # global variables
 current_status = {MAIN_STATUS: MAIN_STATUS_WAKEUP,
-                  ALARM_STATUS: ALARM_OFF}
+                  ALARM_STATUS: ALARM_OFF,
+                  OLED_STATUS: OLED_DISPLAY}
 bed_time = [22, 30]     # time to sleep (hour, minute)
 up_time = [7, 0]        # time to wake up (hour, minute)
 alarm_time = up_time    # time to play alarm clock sound (hour, minute)
+oled_timeout = 0        # time for last oled operation (time.time())
+sleep_time = []         # list to store sleep info (time, follow schedule)
 
 # GPIO pins
 SNOOZE_BUT = 24
@@ -53,14 +64,17 @@ def simple_GPIO_setup():
     """
 
     GPIO.setmode(GPIO.BCM)
+    
     # setup red/green LED
     GPIO.setup(RED_LED, GPIO.LOW)  # low by default
     GPIO.setup(GREEN_LED, GPIO.LOW)  # low by default
+    
     # setup stop/pause button pull up by default
     GPIO.setup(SNOOZE_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(SNOOZE_BUT, GPIO.FALLING, callback=pause_alarm)
     GPIO.setup(STOP_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(STOP_BUT, GPIO.FALLING, callback=stop_alarm)
+    
     # setup alarm switch pull up by default
     GPIO.setup(ALARM_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     current_status[ALARM_STATUS] = GPIO.input(ALARM_SWITCH)
@@ -123,9 +137,9 @@ def pause_alarm(channel):
         speaker.stop_sound()
 
         if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
-        # snooze alarm
-        hour, minute, _ = get_time()
-        set_time(alarm_time, hour, (minute + SNOOZE_TIME))
+            # snooze alarm
+            hour, minute, _ = get_time()
+            set_time(alarm_time, hour, (minute + SNOOZE_TIME))
 
 
 def stop_alarm(channel):
@@ -141,12 +155,12 @@ def stop_alarm(channel):
         speaker.stop_sound()
 
         if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
-        # set MAIN_STATUS to wakeup
-        current_status[MAIN_STATUS] = MAIN_STATUS_WAKEUP
+            # set MAIN_STATUS to wakeup
+            current_status[MAIN_STATUS] = MAIN_STATUS_WAKEUP
             oled_display()
 
-        # set alarm_time to up_time
-        set_time(alarm_time, *up_time)
+            # set alarm_time to up_time
+            set_time(alarm_time, *up_time)
 
 
 ### helper functions ###
@@ -202,6 +216,36 @@ def inc_time(time_object, hour=0, minute=0):
     """
 
     set_time(time_object, time_object[0] + hour, time_object[1] + minute)
+    
+    
+def oled_display():
+    """
+    change the oled display according to different status
+    should be manual called everytime the current_status is changed
+    
+    FUTURE: separate process to check for state change and call oled_display
+    automatically?
+    """
+
+    oled.clear_display()
+    
+    if current_status[OLED_STATUS] == OLED_DISPLAY:
+        if current_status[MAIN_STATUS] == MAIN_STATUS_WAKEUP:
+            oled.add_text('wake up')  # TODO: change to picture
+        elif current_status[MAIN_STATUS] == MAIN_STATUS_NEED_SLEEP:
+            oled.add_text('need sleep')  # TODO: change to picture
+        elif current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
+            oled.add_text('sleep')  # TODO: change to picture
+        elif current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
+            oled.add_text('alarm')  # TODO: change to picture
+    elif current_status[OLED_STATUS] == OLED_SETTINGS:
+        oled.add_text('> sleep time')  # TODO: change line?
+        oled.add_text('wake up time')
+    elif current_status[OLED_STATUS] == OLED_SETTING_TIME:
+        h, m, _ = get_time()
+        oled.add_text(f'{h:02d}:{m:02d}')
+    
+    oled.update_display()
 
 
 ### background tasks ###
@@ -251,9 +295,9 @@ def alarm_clock():
                 current_status[MAIN_STATUS] = MAIN_STATUS_ALARM
                 oled_display()
             if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM and [hour, minute] == alarm_time:
-                    # move next alarm to SNOOZE_TIME minutes later
-                    inc_time(alarm_time, minute=SNOOZE_TIME)
-                    speaker.play_sound()  # TODO
+                # move next alarm to SNOOZE_TIME minutes later
+                inc_time(alarm_time, minute=SNOOZE_TIME)
+                speaker.play_sound()  # TODO
         print("alarm time", alarm_time)  # TODO: test
         print("--- alarm clock ---")  # TODO: test
 
