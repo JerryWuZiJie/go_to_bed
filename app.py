@@ -56,6 +56,9 @@ STOP_BUT = 23
 RED_LED = 25
 GREEN_LED = 26
 ALARM_SWITCH = 22
+ENCODER_L = 14
+ENCODER_R = 15
+ENCODER_BUT = 16
 
 ### onetime tasks ###
 
@@ -83,6 +86,20 @@ def simple_GPIO_setup():
     current_status[ALARM_STATUS] = GPIO.input(ALARM_SWITCH)
     GPIO.add_event_detect(ALARM_SWITCH, GPIO.BOTH, callback=alarm_switch)
 
+    # setup encoder
+    # default to ground
+    GPIO.setup(ENCODER_L, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(ENCODER_R, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(ENCODER_BUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    # add event detect
+    GPIO.add_event_detect(ENCODER_L, GPIO.FALLING,
+                          callback=rotation, bouncetime=20)
+    GPIO.add_event_detect(ENCODER_BUT, GPIO.RISING, callback=push_button)
+    # add timer
+    global encoder_ccw_time, encoder_cw_time
+    encoder_ccw_time = time.time()
+    encoder_cw_time = time.time()
+
 
 def peripheral_setup():
     """
@@ -106,6 +123,7 @@ def peripheral_setup():
 
     # setup light sensor
     light_sensor = go_to_bed.ADC()
+
 
 # setup webpage
 # TODO
@@ -167,6 +185,30 @@ def stop_alarm(channel):
 
             # set alarm_time to up_time
             set_time(alarm_time, *up_time)
+
+
+def rotation(channel):
+    assert channel == ENCODER_L
+
+    global encoder_ccw_time, encoder_cw_time
+    if GPIO.input(ENCODER_R) != GPIO.HIGH:
+        if time.time() - cw_time < 0.1:
+            pass  # still clockwise
+        else:
+            ccw_time = time.time()
+            print("counter clockwise")
+    else:
+        if time.time() - ccw_time < 0.1:
+            pass  # still counter clockwise
+        else:
+            cw_time = time.time()
+            print("clockwise")
+
+
+def push_button(channel):
+    time.sleep(0.020)
+    if GPIO.input(channel):
+        print("Button pressed")
 
 
 ### helper functions ###
@@ -307,6 +349,15 @@ def check_sleeping():
                     sleep_info.append([h, m], False)
 
         time.sleep(MIN_DELAY)
+
+
+def encoder_operation():
+    """
+    process for handling encoder operation based on the current status
+    """
+
+    # TODO
+    pass
 
 
 def alarm_clock():

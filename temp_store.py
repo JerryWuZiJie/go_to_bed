@@ -28,9 +28,9 @@ time.sleep(10)
 GPIO.setmode(GPIO.BCM)
 
 # setup rotary switch
-OUTA = 17
-OUTB = 27
-BUT = 22
+ENCODER_L = 14
+ENCODER_R = 15
+ENCODER_BUT = 16
 
 ccw_time = time.time()
 cw_time = time.time()
@@ -41,10 +41,10 @@ counter = 0
 
 
 def rotation(pin):
-    assert pin == OUTA
+    assert pin == ENCODER_L
 
     global counter, ccw_time, cw_time
-    if GPIO.input(OUTB) != GPIO.HIGH:
+    if GPIO.input(ENCODER_R) != GPIO.HIGH:
         if time.time() - cw_time < 0.1:
             pass  # still clockwise
         else:
@@ -69,12 +69,12 @@ def push_button(pin):
 
 
 # default to ground
-GPIO.setup(OUTA, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(OUTB, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(BUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(ENCODER_L, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(ENCODER_R, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(ENCODER_BUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-GPIO.add_event_detect(OUTA, GPIO.FALLING, callback=rotation, bouncetime=20)
-GPIO.add_event_detect(BUT, GPIO.RISING, callback=push_button)
+GPIO.add_event_detect(ENCODER_L, GPIO.FALLING, callback=rotation, bouncetime=20)
+GPIO.add_event_detect(ENCODER_BUT, GPIO.RISING, callback=push_button)
 
 print("all setup, start running")
 try:
