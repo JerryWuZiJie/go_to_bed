@@ -7,6 +7,7 @@ import time
 import threading
 
 import RPi.GPIO as GPIO
+from flask import Flask, render_template, redirect
 
 import go_to_bed
 
@@ -58,6 +59,13 @@ light_threshold = 2     # threshold voltage for light sensor, user tunable
 time_12_hour = False    # 12 hour mode or 24 hour mode
 setting_status = {SETTING_SELECTION: 0,
                   SETTING_TIME: bed_time}
+settings_info = [['sleep time', f'{bed_time[0]}:{bed_time[1]}'],
+                 ['wake time', f"{up_time[0]}:{up_time[1]}"],
+                 ['volume', '50%'],
+                 ['brightness', '50%'],
+                 ['light sensitivity', light_threshold],
+                 ['12 hour format', time_12_hour]]
+friends_sleep_info = [('Jerry', '83%'), ('Tom', '75%'), ('George', '50%')]
 
 # GPIO pins
 SNOOZE_BUT = 24
@@ -135,7 +143,7 @@ def peripheral_setup():
 
 
 # setup webpage
-# TODO
+webpage_flask = Flask(__name__, static_folder='assets')
 
 
 ### interrupt ###
@@ -372,6 +380,34 @@ def oled_update_display():
     oled.update_display()
 
 
+@webpage_flask.route("/")
+def home():
+    return redirect("/index")
+
+
+@webpage_flask.route("/index")
+def home_template():
+    return render_template("index.html",
+                           sleep_info=sleep_info,
+                           up_time=f"{up_time[0]}:{up_time[1]}",
+                           bed_time=f"{bed_time[0]}:{bed_time[1]}",
+                           other_info=friends_sleep_info,
+                           status="TODO")
+
+
+@webpage_flask.route("/settings")
+def settings_template():
+    global settings_info
+    settings_info = [['sleep time', f'{bed_time[0]}:{bed_time[1]}'],
+                     ['wake time', f"{up_time[0]}:{up_time[1]}"],
+                     ['volume', '50%'],
+                     ['brightness', '50%'],
+                     ['light sensitivity', light_threshold],
+                     ['12 hour format', time_12_hour]]
+    return render_template("settings.html",
+                           settings=settings_info)
+
+
 ### background tasks ###
 def run_webpage():
     """
@@ -484,6 +520,9 @@ if __name__ == "__main__":
     for task in background_tasks:
         thread = threading.Thread(target=task, daemon=True)
         thread.start()
+
+    # turn on webpage
+    webpage_flask.run(host='0.0.0.0', port=80, debug=True, threaded=True)
 
     # TODO: test only
     try:
