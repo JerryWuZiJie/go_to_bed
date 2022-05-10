@@ -6,6 +6,8 @@ import os
 import time
 import threading
 
+from cv2 import cuda_BufferPool
+
 import RPi.GPIO as GPIO
 from flask import Flask, render_template, redirect
 
@@ -14,7 +16,7 @@ import go_to_bed
 ### constants ###
 MIN_DELAY = 10          # delay for tasks need to update within minute precision
 FAST_DELAY = 0.01       # delay for tasks need to update immediately
-SNOOZE_TIME = 10        # snooze time in minutes
+SNOOZE_TIME = 1  # TODO: 10        # snooze time in minutes
 SOUND_PATH = "sound/Let Her Go.mp3"  # path to sound file
 # FUTURE scan for available alarm music in the sound folder
 # available_files = []
@@ -52,22 +54,34 @@ SETTING_TIME = 1
 current_status = {MAIN_STATUS: MAIN_STATUS_WAKEUP,
                   ALARM_STATUS: ALARM_OFF,
                   OLED_STATUS: OLED_DISPLAY}
-bed_time = [22, 30]     # time to sleep (hour, minute)
+bed_time = [11, 10]  # TODO: [22, 30]     # time to sleep (hour, minute)
 today_bed_time = 0      # today's bed time (time.time())
-up_time = [7, 0]        # time to wake up (hour, minute)
+up_time = [11, 15]  # TODO: [7, 0]        # time to wake up (hour, minute)
 alarm_time = up_time    # time to play alarm clock sound (hour, minute)
-sleep_info = []         # list to store sleep info (time, follow schedule)
-light_threshold = 2     # threshold voltage for light sensor, user tunable
+sleep_info = [("05/6", "10:30", True), # list to store sleep info (date, time, follow schedule)
+              ("05/7", "11:53", False),
+              ("05/8", "10:30", True),
+              ("05/9", "10:30", True)]  # TODO: make empty []
+light_threshold = 1.5     # threshold voltage for light sensor, user tunable
 time_12_hour = False    # 12 hour mode or 24 hour mode
 setting_status = {SETTING_SELECTION: 0,
                   SETTING_TIME: bed_time}
 settings_info = [['sleep time', f'{bed_time[0]}:{bed_time[1]}'],
                  ['wake time', f"{up_time[0]}:{up_time[1]}"],
-                 ['volume', '50%'],
-                 ['brightness', '50%'],
+                 ['volume', '100%'],
+                 ['brightness', '100%'],
                  ['light sensitivity', light_threshold],
                  ['12 hour format', time_12_hour]]
-friends_sleep_info = [('Jerry', '83%'), ('Tom', '75%'), ('George', '50%')]
+friends_sleep_info = [('Jerry', '83%'),
+                      ('Tom', '75%'),
+                      ('George', '72%'),
+                      ('Mary', '65%'),
+                      ('Bob', '60%'),
+                      ('Alice', '55%'),
+                      ('Jack', '50%'),
+                      ('Linda', '45%'),
+                      ('John', '40%'),
+                      ('Jane', '35%')]
 
 # GPIO pins
 SNOOZE_BUT = 24
@@ -90,10 +104,6 @@ def simple_GPIO_setup():
 
     GPIO.setmode(GPIO.BCM)
 
-    # setup red/green LED
-    GPIO.setup(RED_LED, LED_OFF)
-    GPIO.setup(GREEN_LED, LED_OFF)
-
     # setup stop/pause button pull up by default
     GPIO.setup(SNOOZE_BUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     GPIO.add_event_detect(SNOOZE_BUT, GPIO.RISING, callback=pause_alarm)
@@ -105,15 +115,23 @@ def simple_GPIO_setup():
     current_status[ALARM_STATUS] = GPIO.input(ALARM_SWITCH)
     GPIO.add_event_detect(ALARM_SWITCH, GPIO.BOTH, callback=alarm_switch)
 
+    # setup red/green LED
+    GPIO.setup(RED_LED, GPIO.OUT)
+    GPIO.output(RED_LED, LED_OFF)
+    GPIO.setup(GREEN_LED, GPIO.OUT)
+    if current_status[ALARM_STATUS] == ALARM_ON:
+        GPIO.output(GREEN_LED, LED_ON)
+    else:
+        GPIO.output(GREEN_LED, LED_OFF)
+
     # setup encoder
     # default to ground
     GPIO.setup(ENCODER_L, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(ENCODER_R, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(ENCODER_BUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    GPIO.setup(ENCODER_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     # add event detect
-    GPIO.add_event_detect(ENCODER_L, GPIO.FALLING,
-                          callback=encoder_rotate, bouncetime=20)
-    GPIO.add_event_detect(ENCODER_BUT, GPIO.RISING, callback=encoder_but)
+    GPIO.add_event_detect(ENCODER_L, GPIO.FALLING, callback=encoder_rotate)
+    GPIO.add_event_detect(ENCODER_BUT, GPIO.FALLING, callback=encoder_but)
     # add timer
     global encoder_ccw_time, encoder_cw_time
     encoder_ccw_time = time.time()
@@ -156,6 +174,7 @@ def alarm_switch(channel):
     otherwise, turn on the alarm, green LED on
     """
 
+    print("switch interrupt")  # TODO
     # debounce, wait for 20 milliseconds
     time.sleep(0.020)
 
@@ -177,7 +196,8 @@ def pause_alarm(channel):
 
     if GPIO.input(channel):
         # stop sound
-        speaker.stop_sound()
+        if not speaker.is_stopped():
+            speaker.stop_sound()
 
         if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
             # snooze alarm
@@ -202,12 +222,14 @@ def stop_alarm(channel):
     callback function to stop alarm clock. If button pushed, alarm is stopped
     """
 
+    global alarm_time
     # debounce, wait for 20 milliseconds
     time.sleep(0.020)
 
     if GPIO.input(channel):
         # turn off alarm
-        speaker.stop_sound()
+        if not speaker.is_stopped():
+            speaker.stop_sound()
 
         if current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
             # set MAIN_STATUS to wakeup
@@ -222,13 +244,10 @@ def encoder_rotate(channel):
     assert channel == ENCODER_L
 
     global encoder_ccw_time, encoder_cw_time
-    if GPIO.input(ENCODER_R) != GPIO.HIGH:
+    if GPIO.input(ENCODER_R) == GPIO.HIGH:
         if time.time() - encoder_cw_time < 0.1:
             pass  # still clockwise
         else:
-            encoder_ccw_time = time.time()
-            print("counter clockwise")  # TODO: test
-            # TODO
             if current_status[OLED_STATUS] == OLED_SETTING:
                 setting_status[SETTING_SELECTION] += 1
             elif current_status[OLED_STATUS] == OLED_SET_HOUR:
@@ -237,13 +256,14 @@ def encoder_rotate(channel):
             elif current_status[OLED_STATUS] == OLED_SET_MINUTE:
                 setting_status[SETTING_TIME][1] = (
                     setting_status[SETTING_TIME][1] + 1) % 60
-    else:
+
+            oled_update_display()
+            encoder_ccw_time = time.time()
+
+    elif GPIO.input(ENCODER_R) == GPIO.LOW:
         if time.time() - encoder_ccw_time < 0.1:
             pass  # still counter clockwise
         else:
-            encoder_cw_time = time.time()
-            print("clockwise")  # TODO: test
-            # TODO
             if current_status[OLED_STATUS] == OLED_SETTING:
                 setting_status[SETTING_SELECTION] -= 1
             elif current_status[OLED_STATUS] == OLED_SET_HOUR:
@@ -253,16 +273,16 @@ def encoder_rotate(channel):
                 setting_status[SETTING_TIME][1] = (
                     setting_status[SETTING_TIME][1] - 1) % 60
 
-    oled_update_display()
+            oled_update_display()
+            encoder_cw_time = time.time()
 
 
 def encoder_but(channel):
+    global bed_time, up_time
     time.sleep(0.020)
-    if GPIO.input(channel):
-        print("Button pressed")  # TODO: test
+    if not GPIO.input(channel):
         if current_status[OLED_STATUS] == OLED_DISPLAY:
             current_status[OLED_STATUS] = OLED_SETTING
-            oled_update_display()
         elif current_status[OLED_STATUS] == OLED_SETTING:
             # determine whether to set bed time or up time
             if setting_status[SETTING_SELECTION] == 0:
@@ -271,24 +291,22 @@ def encoder_but(channel):
                 setting_status[SETTING_TIME] = up_time
 
             current_status[OLED_STATUS] = OLED_SET_HOUR
-            oled_update_display()
         elif current_status[OLED_STATUS] == OLED_SET_HOUR:
             current_status[OLED_STATUS] = OLED_SET_MINUTE
-            oled_update_display()
         elif current_status[OLED_STATUS] == OLED_SET_MINUTE:
             # store current setting
             if setting_status[SETTING_SELECTION] == 0:
                 bed_time[0] = setting_status[SETTING_TIME][0]
                 bed_time[1] = setting_status[SETTING_TIME][1]
-                print(bed_time)  # TODO: test
+                print('update bed time:', bed_time)  # TODO: test
             else:
                 up_time[0] = setting_status[SETTING_TIME][0]
                 up_time[1] = setting_status[SETTING_TIME][1]
-                print(up_time)  # TODO: test
+                print('update up time:', up_time)  # TODO: test
 
             setting_status[SETTING_SELECTION] = 0
             current_status[OLED_STATUS] = OLED_DISPLAY
-            oled_update_display()
+        oled_update_display()
 
 
 ### helper functions ###
@@ -362,13 +380,14 @@ def oled_update_display():
             oled.add_text('wake up')  # TODO: change to picture
         elif current_status[MAIN_STATUS] == MAIN_STATUS_NEED_SLEEP:
             oled.add_text('need sleep')  # TODO: change to picture
+            oled.add_text('40% slept')
         elif current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
             oled.add_text('sleep')  # TODO: change to picture
         elif current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
             oled.add_text('alarm')  # TODO: change to picture
     elif current_status[OLED_STATUS] == OLED_SETTING:
         for i in range(len(SETTING_ITEM)):
-            if i == (setting_status[SETTING_SELECTION] % len(SETTING_ITEM)):
+            if i == (setting_status[SETTING_SELECTION]//2 % len(SETTING_ITEM)):
                 oled.add_text('> ' + SETTING_ITEM[i])
             else:
                 oled.add_text(SETTING_ITEM[i])
@@ -389,19 +408,28 @@ def home():
 
 @webpage_flask.route("/index")
 def home_template():
+    status = 'wakeup'
+    if current_status[MAIN_STATUS] == MAIN_STATUS_WAKEUP:
+        pass
+    elif current_status[MAIN_STATUS] == MAIN_STATUS_NEED_SLEEP:
+        status = 'need sleep'
+    elif current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
+        status = 'sleep'
+    elif current_status[MAIN_STATUS] == MAIN_STATUS_ALARM:
+        status = 'alarm'
     return render_template("index.html",
                            sleep_info=sleep_info,
                            up_time=f"{up_time[0]}:{up_time[1]}",
                            bed_time=f"{bed_time[0]}:{bed_time[1]}",
                            other_info=friends_sleep_info,
-                           status="TODO")
+                           status=status)
 
 
 @webpage_flask.route("/settings")
 def settings_template():
     global settings_info
-    settings_info = [['sleep time', f'{bed_time[0]}:{bed_time[1]}'],
-                     ['wake time', f"{up_time[0]}:{up_time[1]}"],
+    settings_info = [['sleep time', f'{bed_time[0]:02d}:{bed_time[1]:02d}'],
+                     ['wake time', f"{up_time[0]:02d}:{up_time[1]:02d}"],
                      ['volume', '50%'],
                      ['brightness', '50%'],
                      ['light sensitivity', light_threshold],
@@ -431,9 +459,9 @@ def update_time():
             if hour == 0:
                 hour = 12
 
-        clock.set_display(str(hour)+":"+str(minute))
+        clock.set_display(f'{hour:02d}:{minute:02d}')
         time.sleep(1)
-        clock.set_display(str(hour)+str(minute))
+        clock.set_display(f'{hour:02d}{minute:02d}')
         time.sleep(1)
 
 
@@ -442,6 +470,7 @@ def check_sleeping():
     process that check whether light turns off and phone is nearby RFID
     """
 
+    global today_bed_time, bed_time
     while True:
         if current_status[MAIN_STATUS] == MAIN_STATUS_WAKEUP:
             h, m, _ = get_time()
@@ -462,24 +491,30 @@ def check_sleeping():
                 oled_update_display()
 
                 # if sleep within BED_TIME_THRESHOLD, count as follow schedule
+                month, day = get_date()
                 if (time.time() - today_bed_time)/60 <= BED_TIME_THRESHOLD:
-                    sleep_info.append(bed_time, True)
+                    sleep_info.append((f'{month:02d}/{day:02d}',
+                                       f'{bed_time[0]:02d}:{bed_time[1]:02d}',
+                                       True))
                 else:
                     h, m, _ = get_time()
-                    sleep_info.append([h, m], False)
-                    
+                    sleep_info.append((f'{month:02d}/{day:02d}',
+                                       f'{h:02d}:{m:02d}',
+                                       False))
+
                 GPIO.output(RED_LED, LED_OFF)
+        elif current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
+            # check phone
+            id, _ = rfid.read_no_block()
+            voltage = light_sensor.read()
 
-        time.sleep(MIN_DELAY)
+            # check light sensor
+            if not id or voltage > light_threshold:
+                current_status[MAIN_STATUS] = MAIN_STATUS_NEED_SLEEP
+                oled_update_display()
+            
 
-
-def encoder_operation():
-    """
-    process for handling encoder operation based on the current status
-    """
-
-    # TODO
-    pass
+        time.sleep(1)
 
 
 def alarm_clock():
@@ -488,10 +523,6 @@ def alarm_clock():
     """
 
     while True:
-        print("--- alarm clock ---")  # TODO: test
-        print("alarm time", alarm_time)  # TODO: test
-        print("current time", get_time())  # TODO: test
-
         h, m, _ = get_time()
         if current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
             if h == up_time[0] and m == up_time[1]:
@@ -506,9 +537,7 @@ def alarm_clock():
             if h == alarm_time[0] and m == alarm_time[1]:
                 # move next alarm to SNOOZE_TIME minutes later
                 inc_time(alarm_time, minute=SNOOZE_TIME)
-                speaker.play_sound()  # TODO
-        print("alarm time", alarm_time)  # TODO: test
-        print("--- alarm clock ---")  # TODO: test
+                speaker.play_sound()
 
         time.sleep(MIN_DELAY)
 
@@ -517,17 +546,19 @@ if __name__ == "__main__":
     # one time tasks
     simple_GPIO_setup()
     peripheral_setup()
+    oled_update_display()
 
     # background tasks
-    background_tasks = [alarm_clock, update_time]
+    background_tasks = [alarm_clock, update_time, check_sleeping]
 
     # start background tasks
     for task in background_tasks:
         thread = threading.Thread(target=task, daemon=True)
         thread.start()
 
-    # turn on webpage
-    webpage_flask.run(host='0.0.0.0', port=80, debug=True, threaded=True)
+    # TODO
+    # # turn on webpage
+    # webpage_flask.run(host='0.0.0.0', port=80)  #, debug=True, threaded=True)
 
     # TODO: test only
     try:

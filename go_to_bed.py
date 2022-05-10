@@ -218,7 +218,8 @@ class OLED:
         self.oled = adafruit_ssd1306.SSD1306_I2C(width, height, i2c, addr=addr)
 
         # clear display
-        self.clear_display()
+        self.oled.fill(0)
+        self.oled.show()
 
         # create canvas for displaying
         # "1" for 1 bit pixel
@@ -237,7 +238,8 @@ class OLED:
 
         self.x = 0
         self.y = 0
-        self.oled.fill(0)
+        self.canvas.rectangle((0, 0, self.oled.width-1, self.oled.height-1),
+                                 fill=0)
         self.oled.show()
 
     def add_text(self, text, x=None, y=None):
@@ -316,7 +318,7 @@ class ADC:
         self.spi.mode = 0b00
         self.spi.max_speed_hz = 1200000  # 1.2 MHz
 
-    def read(self, channel):
+    def read(self, channel=0):
         readBytes = self.spi.xfer2([self.cmd[channel], 0x00])   # Read from CH0
         digitalValue = ((readBytes[0] & 0b11) << 8) | readBytes[1]
         voltage = digitalValue/1024 * 3.3  # 3.3 is Vref
