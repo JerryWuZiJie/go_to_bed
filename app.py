@@ -22,6 +22,8 @@ SOUND_PATH = "sound/Let Her Go.mp3"  # path to sound file
 #     available_files.extend(filenames)
 BED_TIME_THRESHOLD = 5  # minutes
 SETTING_ITEM = ['bed time', 'wake up time']
+LED_ON = GPIO.LOW
+LED_OFF = GPIO.HIGH
 
 # MAIN_STATUS: 0: wakeup, 1: sleep, 2: alarm
 MAIN_STATUS = 'main status'
@@ -89,17 +91,17 @@ def simple_GPIO_setup():
     GPIO.setmode(GPIO.BCM)
 
     # setup red/green LED
-    GPIO.setup(RED_LED, GPIO.LOW)  # low by default
-    GPIO.setup(GREEN_LED, GPIO.LOW)  # low by default
+    GPIO.setup(RED_LED, LED_OFF)
+    GPIO.setup(GREEN_LED, LED_OFF)
 
     # setup stop/pause button pull up by default
-    GPIO.setup(SNOOZE_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(SNOOZE_BUT, GPIO.FALLING, callback=pause_alarm)
-    GPIO.setup(STOP_BUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(STOP_BUT, GPIO.FALLING, callback=stop_alarm)
+    GPIO.setup(SNOOZE_BUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    GPIO.add_event_detect(SNOOZE_BUT, GPIO.RISING, callback=pause_alarm)
+    GPIO.setup(STOP_BUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    GPIO.add_event_detect(STOP_BUT, GPIO.RISING, callback=stop_alarm)
 
     # setup alarm switch pull up by default
-    GPIO.setup(ALARM_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(ALARM_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     current_status[ALARM_STATUS] = GPIO.input(ALARM_SWITCH)
     GPIO.add_event_detect(ALARM_SWITCH, GPIO.BOTH, callback=alarm_switch)
 
@@ -159,10 +161,10 @@ def alarm_switch(channel):
 
     if GPIO.input(channel) == ALARM_ON:
         current_status[ALARM_STATUS] = ALARM_ON
-        GPIO.output(GREEN_LED, GPIO.LOW)
+        GPIO.output(GREEN_LED, LED_ON)
     else:
         current_status[ALARM_STATUS] = ALARM_OFF
-        GPIO.output(GREEN_LED, GPIO.HIGH)
+        GPIO.output(GREEN_LED, LED_OFF)
 
 
 def pause_alarm(channel):
@@ -173,7 +175,7 @@ def pause_alarm(channel):
     # debounce, wait for 20 milliseconds
     time.sleep(0.020)
 
-    if not GPIO.input(channel):
+    if GPIO.input(channel):
         # stop sound
         speaker.stop_sound()
 
@@ -203,7 +205,7 @@ def stop_alarm(channel):
     # debounce, wait for 20 milliseconds
     time.sleep(0.020)
 
-    if not GPIO.input(channel):
+    if GPIO.input(channel):
         # turn off alarm
         speaker.stop_sound()
 
@@ -447,8 +449,9 @@ def check_sleeping():
                 current_status[MAIN_STATUS] = MAIN_STATUS_NEED_SLEEP
                 oled_update_display()
                 today_bed_time = time.time()
+                GPIO.output(RED_LED, LED_ON)
 
-        if current_status[MAIN_STATUS] == MAIN_STATUS_SLEEP:
+        if current_status[MAIN_STATUS] == MAIN_STATUS_NEED_SLEEP:
             # check phone
             rfid.read()  # will block until RFID is read
             voltage = light_sensor.read()
@@ -464,6 +467,8 @@ def check_sleeping():
                 else:
                     h, m, _ = get_time()
                     sleep_info.append([h, m], False)
+                    
+                GPIO.output(RED_LED, LED_OFF)
 
         time.sleep(MIN_DELAY)
 
